@@ -573,12 +573,18 @@ function ava(p, size){
   d.style.fontSize = Math.round(size * .38) + "px";
   if (p.group) d.classList.add("grp");
   else if (friends.has(p.uid)) d.classList.add("friend");
-  if (p.photo) { const i = document.createElement("img"); i.src = p.photo; i.alt = ""; d.append(i); }
-  else {
-    const [a, b] = grad(p.uid || "x");
-    d.style.background = "linear-gradient(135deg," + a + "," + b + ")";
+  const [ga, gb] = grad(p.uid || "x");
+  const letter = () => {
+    d.style.background = "linear-gradient(135deg," + ga + "," + gb + ")";
     d.append(el("span", null, String(p.name || p.nick || "?").trim().charAt(0).toUpperCase()));
-  }
+  };
+  if (p.photo) {
+    const i = document.createElement("img"); i.alt = "";
+    // если картинка битая — не оставляем чёрный круг, показываем букву
+    i.onerror = () => { i.remove(); if (!d.querySelector("span")) letter(); };
+    i.src = p.photo;
+    d.append(i);
+  } else letter();
   return d;
 }
 
@@ -630,17 +636,28 @@ function shrink(file, side, budget){
     r.onerror = () => rej(new Error("read"));
     r.onload = () => {
       const img = new Image();
-      img.onerror = () => rej(new Error("img"));
-      img.onload = () => {
-        let w = img.width, h = img.height;
+      const draw = () => {
+        let w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+        if (!w || !h) { rej(new Error("empty")); return; }
         const k = Math.min(1, side / Math.max(w, h));
-        w = Math.round(w * k); h = Math.round(h * k);
+        w = Math.max(1, Math.round(w * k)); h = Math.max(1, Math.round(h * k));
         const cv = document.createElement("canvas");
         cv.width = w; cv.height = h;
-        cv.getContext("2d").drawImage(img, 0, 0, w, h);
+        const ctx = cv.getContext("2d");
+        // белый фон — иначе прозрачные участки станут чёрными в JPEG
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
         let q = 0.8, out = cv.toDataURL("image/jpeg", q);
         while (out.length > budget && q > 0.28) { q -= 0.1; out = cv.toDataURL("image/jpeg", q); }
+        if (!out || out.length < 200) { rej(new Error("encode")); return; }
         res(out);
+      };
+      img.onerror = () => rej(new Error("img"));
+      img.onload = () => {
+        // гарантируем, что картинка декодирована перед отрисовкой (важно для HEIC/больших фото)
+        if (img.decode) { img.decode().then(draw).catch(draw); }
+        else draw();
       };
       img.src = r.result;
     };
