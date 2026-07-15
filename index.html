@@ -162,6 +162,7 @@ img{display:block;max-width:100%}
   white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px;animation:pop .18s ease-out;
 }
 .bub.tight{margin-bottom:3px}
+@keyframes spin{to{transform:rotate(360deg)}}
 @keyframes pop{from{opacity:0;transform:translateY(7px) scale(.98)}to{opacity:1;transform:none}}
 .bub.them{background:var(--s2);margin-right:auto;border-bottom-left-radius:7px}
 .bub.mine{background:var(--grad);color:#fff;margin-left:auto;border-bottom-right-radius:7px;cursor:pointer}
@@ -306,8 +307,14 @@ img{display:block;max-width:100%}
 
 <div class="frame">
 
+  <!-- ======== ЗАСТАВКА ======== -->
+  <section id="splash" style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px">
+    <div class="logo">Kwora</div>
+    <div style="width:26px;height:26px;border:3px solid #2E3340;border-top-color:#7B61FF;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+  </section>
+
   <!-- ======== ВХОД ======== -->
-  <section id="auth">
+  <section id="auth" class="hide">
     <div class="logo">Kwora</div>
     <div class="pane">
       <div class="seg">
@@ -362,6 +369,11 @@ img{display:block;max-width:100%}
         <div class="body" id="listPeople"></div>
       </div>
 
+      <div id="vBots" class="view">
+        <div class="head"><div class="name grow">Боты</div></div>
+        <div class="body" id="listBots"></div>
+      </div>
+
       <div id="vMe" class="view">
         <div class="head"><div class="name grow">Профиль</div></div>
         <div class="body" id="listMe"></div>
@@ -376,6 +388,10 @@ img{display:block;max-width:100%}
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8A90A0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.4"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M17 5.2a3.4 3.4 0 0 1 0 6.6"/><path d="M18.5 14.4A6.5 6.5 0 0 1 22 20"/></svg>
           Люди
           <span class="dot hide" id="badge">0</span>
+        </button>
+        <button id="tBots" class="hide">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8A90A0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 7V4M9 13h.01M15 13h.01M9 16h6"/><path d="M2 12v2M22 12v2"/></svg>
+          Боты
         </button>
         <button id="tMe">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8A90A0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>
@@ -774,11 +790,14 @@ $("go").onclick = async () => {
 
 onAuthStateChanged(auth, async u => {
   if (busy || awaitCode) return;
+  $("splash").classList.add("hide");
   if (!u) { stopAll(); return; }
-  const s = await getDoc(U(u.uid));
-  if (!s.exists()) { await signOut(auth); setMode("up"); $("note").textContent = "Профиль не найден."; return; }
-  if (s.data().banned) { await signOut(auth); $("note").textContent = "Этот аккаунт заблокирован."; return; }
-  start(s.data());
+  try {
+    const s = await getDoc(U(u.uid));
+    if (!s.exists()) { await signOut(auth); setMode("up"); $("note").textContent = "Профиль не найден."; return; }
+    if (s.data().banned) { await signOut(auth); $("note").textContent = "Этот аккаунт заблокирован."; return; }
+    start(s.data());
+  } catch (e) { stopAll(); }
 });
 
 function stopAll(){
@@ -793,13 +812,14 @@ function stopAll(){
   hideGate();
   $("chat").classList.remove("on");
   $("app").classList.add("hide");
+  $("splash").classList.add("hide");
   $("auth").classList.remove("hide");
   $("go").disabled = false; $("iPass").value = "";
 }
 
 async function start(p){
   me = p; cache.set(me.uid, me);
-  $("auth").classList.add("hide"); $("gate").classList.add("hide"); $("app").classList.remove("hide"); $("go").disabled = false;
+  $("auth").classList.add("hide"); $("gate").classList.add("hide"); $("splash").classList.add("hide"); $("app").classList.remove("hide"); $("go").disabled = false;
 
   try { isAdmin = (await getDoc(doc(db, "admins", me.uid))).exists(); } catch (_) { isAdmin = false; }
 
@@ -807,6 +827,7 @@ async function start(p){
     if (!s.exists()) { toast("Аккаунт удалён"); stopAll(); signOut(auth); return; }
     me = s.data(); cache.set(me.uid, me);
     if (me.banned) { toast("Аккаунт заблокирован"); stopAll(); signOut(auth); return; }
+    syncBotsTab();
     if (tab === "me") drawMe();
   }));
 
@@ -855,6 +876,7 @@ async function start(p){
     });
   }, e => toast("Звонки: " + say(e))));
 
+  syncBotsTab();
   go("chats");
 }
 
@@ -871,15 +893,17 @@ function face(c){
 
 $("tChats").onclick = () => go("chats");
 $("tPeople").onclick = () => go("people");
+$("tBots").onclick = () => go("bots");
 $("tMe").onclick = () => go("me");
 function go(t){
   tab = t;
-  [["chats","vChats","tChats"],["people","vPeople","tPeople"],["me","vMe","tMe"]].forEach(([k, v, b]) => {
+  [["chats","vChats","tChats"],["people","vPeople","tPeople"],["bots","vBots","tBots"],["me","vMe","tMe"]].forEach(([k, v, b]) => {
     $(v).classList.toggle("on", k === t);
     $(b).classList.toggle("on", k === t);
   });
   if (t === "chats") drawChats();
   if (t === "people") drawPeople();
+  if (t === "bots") drawBots();
   if (t === "me") drawMe();
 }
 
@@ -1056,11 +1080,7 @@ $("btnPlus").onclick = () => {
   g.append(el("span", null, "Создать группу"));
   g.onclick = () => { hideSheet(); newGroupDialog(); };
   b.append(g);
-  const bot = el("button", null);
-  bot.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EDEFF4" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 7V4M9 13h.01M15 13h.01M9 16h6"/><path d="M2 12v2M22 12v2"/></svg>';
-  bot.append(el("span", null, "Bot Creator"));
-  bot.onclick = () => { hideSheet(); botCreator(); };
-  b.append(bot);
+
   showSheet();
 };
 
@@ -1931,6 +1951,24 @@ function drawMe(){
   ob.onclick = async () => { stopAll(); await signOut(auth); };
   l8.append(ob); out.append(l8); box.append(out);
 
+  // приглашение в Bot Creator (если ещё не присоединился)
+  if (!me.botJoined) {
+    box.append(el("div", "cap", "Разработчикам"));
+    const bc = el("div", "card"); bc.style.padding = "16px";
+    const h = el("div"); h.style.cssText = "font-size:19px;font-weight:700;font-family:Unbounded,sans-serif";
+    h.textContent = "bot creator";
+    bc.append(h);
+    bc.append(el("div", "k", "создание ботов"));
+    const j = el("button", "cta", "Присоединиться"); j.style.marginTop = "12px";
+    j.onclick = async () => {
+      j.disabled = true;
+      try { await updateDoc(U(me.uid), { botJoined: true }); toast("Добро пожаловать в Bot Creator"); }
+      catch (e) { toast(say(e)); j.disabled = false; }
+    };
+    bc.append(j);
+    box.append(bc);
+  }
+
   if (isAdmin) box.append(adminPanel());
 
   const k = el("button", "kbtn", "k");
@@ -2218,6 +2256,58 @@ const RULE_TYPES = [
 ];
 const ruleTypeName = t => (RULE_TYPES.find(x => x[0] === t) || RULE_TYPES[0])[1];
 
+/* показать/скрыть вкладку Боты */
+function syncBotsTab(){
+  const on = !!(me && me.botJoined);
+  const t = $("tBots");
+  if (t) t.classList.toggle("hide", !on);
+  if (!on && tab === "bots") go("me");
+}
+
+/* экран вкладки Боты */
+async function drawBots(){
+  const box = $("listBots"); box.replaceChildren();
+  box.append(el("div", "cap", "Мои боты"));
+  const wrap = el("div"); box.append(wrap);
+  wrap.append(el("div", "line", "Загружаю…"));
+
+  let mine = [];
+  try {
+    const s = await getDocs(query(collection(db, "users"), where("botOwner", "==", me.uid), limit(60)));
+    mine = s.docs.map(x => ({ uid: x.id, ...x.data() }));
+  } catch (e) { wrap.replaceChildren(el("div", "line", say(e))); return; }
+
+  wrap.replaceChildren();
+  if (!mine.length) {
+    const b = el("div", "blank");
+    b.append(el("b", null, "Ботов пока нет"));
+    b.append(document.createTextNode("Создай первого — он будет отвечать по правилам круглосуточно."));
+    wrap.append(b);
+  } else {
+    for (const bt of mine) {
+      const row = el("button", "item");
+      row.append(ava(bt, 46));
+      const m = el("div", "grow");
+      m.append(el("div", "t1 ell", bt.name || bt.nick));
+      m.append(el("div", "t2 mono ell", "@" + bt.nick));
+      row.append(m);
+      row.append(el("div", "pill", "Настроить"));
+      row.onclick = () => botEditor(bt);
+      wrap.append(row);
+    }
+  }
+
+  const card = el("div", "card"); card.style.padding = "14px"; card.style.marginTop = "4px";
+  const cnt = el("div", "k"); cnt.textContent = mine.length + " из " + BOT_LIMIT + " ботов"; card.append(cnt);
+  const add = el("button", "cta", "Создать бота"); add.style.marginTop = "10px";
+  add.onclick = () => {
+    if (mine.length >= BOT_LIMIT) { toast("Достигнут лимит " + BOT_LIMIT + " ботов"); return; }
+    newBotDialog();
+  };
+  card.append(add);
+  box.append(card);
+}
+
 /* \u0433\u043b\u0430\u0432\u043d\u044b\u0439 \u044d\u043a\u0440\u0430\u043d: \u0441\u043f\u0438\u0441\u043e\u043a \u043c\u043e\u0438\u0445 \u0431\u043e\u0442\u043e\u0432 + \u043a\u043d\u043e\u043f\u043a\u0430 \u0441\u043e\u0437\u0434\u0430\u0442\u044c */
 async function botCreator(){
   const d = $("dlg"); d.replaceChildren();
@@ -2261,6 +2351,46 @@ async function botCreator(){
 }
 
 /* \u0441\u043e\u0437\u0434\u0430\u043d\u0438\u0435 \u0431\u043e\u0442\u0430 */
+/* награда-значок за первого бота */
+async function awardBotBadge(done){
+  // ищем значок с именем "bot creator" (регистронезависимо) в каталоге
+  let badge = badgeCat.find(b => (b.name || "").trim().toLowerCase() === "bot creator");
+  // если каталог ещё не подгрузился — дочитаем напрямую
+  if (!badge) {
+    try {
+      const snap = await getDocs(collection(db, "badges"));
+      const all = snap.docs.map(x => ({ id: x.id, ...x.data() }));
+      badge = all.find(b => (b.name || "").trim().toLowerCase() === "bot creator");
+    } catch (_) {}
+  }
+
+  const d = $("dlg"); d.replaceChildren();
+  d.append(el("h3", null, "Вам доступен значок"));
+  const wrap = el("div"); wrap.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:12px;padding:14px 0";
+  if (badge && badge.img) {
+    const im = document.createElement("img"); im.src = badge.img;
+    im.style.cssText = "width:88px;height:88px;border-radius:22px;object-fit:cover;box-shadow:0 8px 30px -10px rgba(123,97,255,.7)";
+    wrap.append(im);
+  } else {
+    const ph = el("div"); ph.style.cssText = "width:88px;height:88px;border-radius:22px;background:var(--grad);display:grid;place-items:center;font-size:38px";
+    ph.textContent = "🤖"; wrap.append(ph);
+  }
+  wrap.append(el("div", null, badge ? (badge.name || "bot creator") : "bot creator"));
+  d.append(wrap);
+
+  const ok = el("button", "cta", "Хорошо");
+  ok.onclick = async () => {
+    ok.disabled = true;
+    if (badge) {
+      try { await updateDoc(U(me.uid), { badges: arrayUnion(badge.id) }); } catch (e) { toast(say(e)); }
+    }
+    closeDlg();
+    if (done) setTimeout(done, 60);
+  };
+  d.append(ok);
+  $("modal").classList.add("on");
+}
+
 function newBotDialog(){
   const d = $("dlg"); d.replaceChildren();
   d.append(el("h3", null, "\u041d\u043e\u0432\u044b\u0439 \u0431\u043e\u0442"));
@@ -2294,8 +2424,11 @@ function newBotDialog(){
         verified: false, verifyAsked: false, badges: [], banned: false,
         createdAt: serverTimestamp()
       });
-      toast("\u0411\u043e\u0442 \u0441\u043e\u0437\u0434\u0430\u043d");
-      botEditor({ uid: ref.id, nick, nickLow: low, name, isBot: true, botOwner: me.uid, photo: "" });
+toast("\u0411\u043e\u0442 \u0441\u043e\u0437\u0434\u0430\u043d");
+      const wasFirst = (cnt.size === 0);
+      const newBot = { uid: ref.id, nick, nickLow: low, name, isBot: true, botOwner: me.uid, photo: "" };
+      if (wasFirst) { closeDlg(); awardBotBadge(() => botEditor(newBot)); }
+      else botEditor(newBot);
     } catch (e) { err.textContent = say(e); ok.disabled = false; }
   };
   row.append(no, ok); d.append(row);
