@@ -1056,6 +1056,11 @@ $("btnPlus").onclick = () => {
   g.append(el("span", null, "Создать группу"));
   g.onclick = () => { hideSheet(); newGroupDialog(); };
   b.append(g);
+  const bot = el("button", null);
+  bot.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EDEFF4" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 7V4M9 13h.01M15 13h.01M9 16h6"/><path d="M2 12v2M22 12v2"/></svg>';
+  bot.append(el("span", null, "Bot Creator"));
+  bot.onclick = () => { hideSheet(); botCreator(); };
+  b.append(bot);
   showSheet();
 };
 
@@ -2201,6 +2206,233 @@ function manageBadges(id, isGroup){
 
   $("modal").classList.add("on");
 }
+
+
+/* ============ BOT CREATOR (\u0441\u043b\u043e\u0439 1) ============ */
+const BOT_LIMIT = 25;
+const RULE_TYPES = [
+  ["equals", "\u0422\u043e\u0447\u043d\u043e\u0435 \u0441\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0435"],
+  ["contains", "\u0421\u043e\u0434\u0435\u0440\u0436\u0438\u0442 \u0441\u043b\u043e\u0432\u043e"],
+  ["command", "\u041a\u043e\u043c\u0430\u043d\u0434\u0430 (/\u0447\u0442\u043e-\u0442\u043e)"],
+  ["all", "\u041d\u0430 \u043b\u044e\u0431\u043e\u0435 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435"]
+];
+const ruleTypeName = t => (RULE_TYPES.find(x => x[0] === t) || RULE_TYPES[0])[1];
+
+/* \u0433\u043b\u0430\u0432\u043d\u044b\u0439 \u044d\u043a\u0440\u0430\u043d: \u0441\u043f\u0438\u0441\u043e\u043a \u043c\u043e\u0438\u0445 \u0431\u043e\u0442\u043e\u0432 + \u043a\u043d\u043e\u043f\u043a\u0430 \u0441\u043e\u0437\u0434\u0430\u0442\u044c */
+async function botCreator(){
+  const d = $("dlg"); d.replaceChildren();
+  d.append(el("h3", null, "Bot Creator"));
+  d.append(el("p", null, "\u0421\u043e\u0437\u0434\u0430\u0432\u0430\u0439 \u0431\u043e\u0442\u043e\u0432, \u043a\u043e\u0442\u043e\u0440\u044b\u0435 \u043e\u0442\u0432\u0435\u0447\u0430\u044e\u0442 \u043f\u043e \u043f\u0440\u0430\u0432\u0438\u043b\u0430\u043c \u043a\u0440\u0443\u0433\u043b\u043e\u0441\u0443\u0442\u043e\u0447\u043d\u043e. \u041b\u0438\u043c\u0438\u0442: " + BOT_LIMIT + "."));
+  const list = el("div"); d.append(list);
+  list.append(el("div", "line", "\u0417\u0430\u0433\u0440\u0443\u0436\u0430\u044e\u2026"));
+
+  let mine = [];
+  try {
+    const s = await getDocs(query(collection(db, "users"), where("botOwner", "==", me.uid), limit(60)));
+    mine = s.docs.map(x => ({ uid: x.id, ...x.data() }));
+  } catch (e) { list.replaceChildren(el("div", "line", say(e))); }
+
+  const render = () => {
+    list.replaceChildren();
+    if (!mine.length) { list.append(el("div", "blank", "\u0411\u043e\u0442\u043e\u0432 \u043f\u043e\u043a\u0430 \u043d\u0435\u0442. \u0421\u043e\u0437\u0434\u0430\u0439 \u043f\u0435\u0440\u0432\u043e\u0433\u043e.")); return; }
+    for (const b of mine) {
+      const row = el("button", "chk");
+      row.append(ava(b, 38));
+      const m = el("div", "grow");
+      m.append(el("div", "t1 ell", b.name || b.nick));
+      m.append(el("div", "t2 mono ell", "@" + b.nick));
+      row.append(m);
+      row.append(el("div", "pill", "\u041d\u0430\u0441\u0442\u0440\u043e\u0438\u0442\u044c"));
+      row.onclick = () => botEditor(b);
+      list.append(row);
+    }
+  };
+  render();
+
+  const row = el("div", "row");
+  const no = el("button", "ghost", "\u0417\u0430\u043a\u0440\u044b\u0442\u044c"); no.onclick = closeDlg;
+  const add = el("button", "cta", "\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u0431\u043e\u0442\u0430");
+  add.onclick = () => {
+    if (mine.length >= BOT_LIMIT) { toast("\u0414\u043e\u0441\u0442\u0438\u0433\u043d\u0443\u0442 \u043b\u0438\u043c\u0438\u0442 " + BOT_LIMIT + " \u0431\u043e\u0442\u043e\u0432"); return; }
+    newBotDialog();
+  };
+  row.append(no, add); d.append(row);
+  $("modal").classList.add("on");
+}
+
+/* \u0441\u043e\u0437\u0434\u0430\u043d\u0438\u0435 \u0431\u043e\u0442\u0430 */
+function newBotDialog(){
+  const d = $("dlg"); d.replaceChildren();
+  d.append(el("h3", null, "\u041d\u043e\u0432\u044b\u0439 \u0431\u043e\u0442"));
+  d.append(el("p", null, "\u0418\u043c\u044f \u0438 \u043d\u0438\u043a. \u041d\u0438\u043a \u0443\u043d\u0438\u043a\u0430\u043b\u0435\u043d, \u043f\u043e \u043d\u0435\u043c\u0443 \u0431\u043e\u0442\u0430 \u043d\u0430\u0439\u0434\u0443\u0442 \u0432 \u043f\u043e\u0438\u0441\u043a\u0435."));
+  const b1 = el("div", "inp"); const nm = document.createElement("input"); nm.placeholder = "\u0418\u043c\u044f \u0431\u043e\u0442\u0430"; nm.maxLength = 32; b1.append(nm); d.append(b1);
+  const b2 = el("div", "inp"); const pre = el("span", "pre", "@"); const nk = document.createElement("input"); nk.placeholder = "\u043d\u0438\u043a"; nk.maxLength = 20; nk.autocapitalize = "none"; b2.append(pre, nk); d.append(b2);
+  const err = el("div", "note"); d.append(err);
+  const row = el("div", "row");
+  const no = el("button", "ghost", "\u041e\u0442\u043c\u0435\u043d\u0430"); no.onclick = botCreator;
+  const ok = el("button", "cta", "\u0421\u043e\u0437\u0434\u0430\u0442\u044c");
+  ok.onclick = async () => {
+    err.textContent = "";
+    const name = nm.value.trim();
+    const nick = nk.value.trim().replace(/^@/, ""), low = nick.toLowerCase();
+    if (!name) { err.textContent = "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0438\u043c\u044f."; return; }
+    if (!/^[a-z0-9_]{3,20}$/.test(low)) { err.textContent = "\u041d\u0438\u043a: 3\u201320 \u0437\u043d\u0430\u043a\u043e\u0432, \u043b\u0430\u0442\u0438\u043d\u0438\u0446\u0430, \u0446\u0438\u0444\u0440\u044b \u0438 _"; return; }
+    ok.disabled = true;
+    try {
+      // \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u043b\u0438\u043c\u0438\u0442\u0430
+      const cnt = await getDocs(query(collection(db, "users"), where("botOwner", "==", me.uid), limit(BOT_LIMIT + 1)));
+      if (cnt.size >= BOT_LIMIT) { err.textContent = "\u0414\u043e\u0441\u0442\u0438\u0433\u043d\u0443\u0442 \u043b\u0438\u043c\u0438\u0442 " + BOT_LIMIT + "."; ok.disabled = false; return; }
+      // \u043d\u0438\u043a \u0441\u0432\u043e\u0431\u043e\u0434\u0435\u043d?
+      const ex = await getDocs(query(collection(db, "users"), where("nickLow", "==", low), limit(1)));
+      if (!ex.empty) { err.textContent = "\u0422\u0430\u043a\u043e\u0439 \u043d\u0438\u043a \u0437\u0430\u043d\u044f\u0442."; ok.disabled = false; return; }
+      // id \u0431\u043e\u0442\u0430 \u2014 \u0441\u0433\u0435\u043d\u0435\u0440\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u044b\u0439 \u0434\u043e\u043a
+      const ref = doc(collection(db, "users"));
+      await setDoc(ref, {
+        uid: ref.id, nick, nickLow: low, name,
+        isBot: true, botOwner: me.uid,
+        photo: "", bio: "\u0411\u043e\u0442", whoCanWrite: "all",
+        verified: false, verifyAsked: false, badges: [], banned: false,
+        createdAt: serverTimestamp()
+      });
+      toast("\u0411\u043e\u0442 \u0441\u043e\u0437\u0434\u0430\u043d");
+      botEditor({ uid: ref.id, nick, nickLow: low, name, isBot: true, botOwner: me.uid, photo: "" });
+    } catch (e) { err.textContent = say(e); ok.disabled = false; }
+  };
+  row.append(no, ok); d.append(row);
+  $("modal").classList.add("on");
+}
+
+/* \u0440\u0435\u0434\u0430\u043a\u0442\u043e\u0440 \u0431\u043e\u0442\u0430: \u0430\u0432\u0430\u0442\u0430\u0440, \u0438\u043c\u044f, \u043f\u0440\u0430\u0432\u0438\u043b\u0430, \u0443\u0434\u0430\u043b\u0435\u043d\u0438\u0435 */
+function botEditor(b){
+  const d = $("dlg"); d.replaceChildren();
+  d.append(el("h3", null, b.name || "\u0411\u043e\u0442"));
+
+  // \u0430\u0432\u0430\u0442\u0430\u0440
+  const wrap = el("div"); wrap.style.cssText = "display:flex;flex-direction:column;align-items:center;margin-bottom:12px";
+  const av = ava(b, 76); av.style.cursor = "pointer"; wrap.append(av);
+  const chp = el("button", "pill", "\u0410\u0432\u0430\u0442\u0430\u0440"); chp.style.marginTop = "9px";
+  const pg = $("pickGrp");
+  const doPick = () => { pg.onchange = async e => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (!f) return; try { const photo = await shrink(f, 240, 200000); await updateDoc(U(b.uid), { photo }); b.photo = photo; const na = ava(b, 76); av.replaceChildren(); while (na.firstChild) av.append(na.firstChild); av.className = na.className; toast("\u0410\u0432\u0430\u0442\u0430\u0440 \u043e\u0431\u043d\u043e\u0432\u043b\u0451\u043d"); } catch (err) { toast(say(err)); } }; pg.click(); };
+  av.onclick = doPick; chp.onclick = doPick;
+  wrap.append(chp); d.append(wrap);
+
+  // \u0438\u043c\u044f + \u043e\u043f\u0438\u0441\u0430\u043d\u0438\u0435
+  const b1 = el("div", "inp"); const nm = document.createElement("input"); nm.value = b.name || ""; nm.maxLength = 32; nm.placeholder = "\u0418\u043c\u044f"; b1.append(nm); d.append(b1);
+  const b2 = el("div", "inp"); const bi = document.createElement("input"); bi.value = b.bio || ""; bi.maxLength = 120; bi.placeholder = "\u041e\u043f\u0438\u0441\u0430\u043d\u0438\u0435"; b2.append(bi); d.append(b2);
+  const saveInfo = async () => {
+    const name = nm.value.trim(); if (!name) return;
+    try { await updateDoc(U(b.uid), { name, bio: bi.value.trim() }); b.name = name; b.bio = bi.value.trim(); } catch (e) { toast(say(e)); }
+  };
+  nm.onblur = saveInfo; bi.onblur = saveInfo;
+
+  // \u043f\u0440\u0430\u0432\u0438\u043b\u0430
+  d.append(el("div", "cap", "\u041f\u0440\u0430\u0432\u0438\u043b\u0430 \u043e\u0442\u0432\u0435\u0442\u043e\u0432"));
+  const rules = el("div"); d.append(rules);
+  rules.append(el("div", "line", "\u0417\u0430\u0433\u0440\u0443\u0436\u0430\u044e\u2026"));
+
+  const loadRules = async () => {
+    try {
+      const s = await getDocs(query(collection(db, "users", b.uid, "rules"), orderBy("order", "asc")));
+      const arr = s.docs.map(x => ({ id: x.id, ...x.data() }));
+      rules.replaceChildren();
+      if (!arr.length) { rules.append(el("div", "blank", "\u041f\u0440\u0430\u0432\u0438\u043b \u043d\u0435\u0442. \u0414\u043e\u0431\u0430\u0432\u044c\u0442\u0435 \u043f\u0435\u0440\u0432\u043e\u0435.")); return; }
+      for (const r of arr) {
+        const row = el("div", "chk");
+        const m = el("div", "grow");
+        const t1 = el("div", "t1 ell", r.type === "all" ? "\u2192 " + (r.reply || "") : (r.match || ""));
+        m.append(t1);
+        m.append(el("div", "t2 ell", ruleTypeName(r.type) + (r.type === "all" ? "" : "  \u2192  " + (r.reply || ""))));
+        row.append(m);
+        const ed = el("button", "pill", "\u0418\u0437\u043c."); ed.onclick = () => ruleEditor(b, r, loadRules); row.append(ed);
+        const dl = el("button", "pill red", "\u2715"); dl.onclick = async () => { try { await deleteDoc(doc(db, "users", b.uid, "rules", r.id)); loadRules(); } catch (e) { toast(say(e)); } };
+        row.append(dl);
+        rules.append(row);
+      }
+    } catch (e) { rules.replaceChildren(el("div", "line", say(e))); }
+  };
+  loadRules();
+
+  const addRule = el("button", "ghost", "+ \u041f\u0440\u0430\u0432\u0438\u043b\u043e"); addRule.style.marginTop = "8px";
+  addRule.onclick = () => ruleEditor(b, null, loadRules);
+  d.append(addRule);
+
+  // \u043d\u0438\u0437: \u043e\u0442\u043a\u0440\u044b\u0442\u044c \u0447\u0430\u0442 / \u0443\u0434\u0430\u043b\u0438\u0442\u044c / \u043d\u0430\u0437\u0430\u0434
+  const row = el("div", "row");
+  const back = el("button", "ghost", "\u041d\u0430\u0437\u0430\u0434"); back.onclick = botCreator;
+  const open = el("button", "cta", "\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u0447\u0430\u0442");
+  open.onclick = () => { closeDlg(); openDM(b); };
+  row.append(back, open); d.append(row);
+
+  const delRow = el("div", "row"); delRow.style.marginTop = "8px";
+  const del = el("button", "ghost danger", "\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u0431\u043e\u0442\u0430");
+  del.onclick = () => {
+    dialog("\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u0431\u043e\u0442\u0430?", "\u0411\u043e\u0442 \u0438 \u0432\u0441\u0435 \u0435\u0433\u043e \u043f\u0440\u0430\u0432\u0438\u043b\u0430 \u043f\u0440\u043e\u043f\u0430\u0434\u0443\u0442.", "\u0423\u0434\u0430\u043b\u0438\u0442\u044c", async () => {
+      try {
+        const rs = await getDocs(collection(db, "users", b.uid, "rules"));
+        for (const x of rs.docs) await deleteDoc(x.ref).catch(() => {});
+        await deleteDoc(U(b.uid));
+        closeDlg(); toast("\u0411\u043e\u0442 \u0443\u0434\u0430\u043b\u0451\u043d");
+      } catch (e) { toast(say(e)); }
+    }, true);
+  };
+  delRow.append(del); d.append(delRow);
+
+  $("modal").classList.add("on");
+}
+
+/* \u0440\u0435\u0434\u0430\u043a\u0442\u043e\u0440 \u043e\u0434\u043d\u043e\u0433\u043e \u043f\u0440\u0430\u0432\u0438\u043b\u0430: \u043a\u043d\u043e\u043f\u043a\u0438 \u0432\u044b\u0431\u043e\u0440\u0430 \u0442\u0438\u043f\u0430 */
+function ruleEditor(b, r, done){
+  const d = $("dlg"); d.replaceChildren();
+  d.append(el("h3", null, r ? "\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u043f\u0440\u0430\u0432\u0438\u043b\u043e" : "\u041d\u043e\u0432\u043e\u0435 \u043f\u0440\u0430\u0432\u0438\u043b\u043e"));
+
+  let type = r ? (r.type || "equals") : "equals";
+
+  d.append(el("div", "cap", "\u0422\u0438\u043f \u0441\u0440\u0430\u0431\u0430\u0442\u044b\u0432\u0430\u043d\u0438\u044f"));
+  const types = el("div"); types.style.cssText = "display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px";
+  const matchBox = el("div", "inp");
+  const mi = document.createElement("input"); mi.placeholder = "\u0442\u0435\u043a\u0441\u0442-\u0442\u0440\u0438\u0433\u0433\u0435\u0440"; mi.value = r ? (r.match || "") : ""; matchBox.append(mi);
+
+  const syncMatch = () => {
+    if (type === "all") { matchBox.classList.add("hide"); }
+    else { matchBox.classList.remove("hide"); mi.placeholder = type === "command" ? "\u043d\u0430\u043f\u0440. /help" : (type === "contains" ? "\u0441\u043b\u043e\u0432\u043e \u0432 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0438" : "\u0442\u043e\u0447\u043d\u044b\u0439 \u0442\u0435\u043a\u0441\u0442"); }
+  };
+  for (const [key, label] of RULE_TYPES) {
+    const pill = el("button", "pill" + (key === type ? " on" : ""), label);
+    pill.onclick = () => { type = key; types.querySelectorAll(".pill").forEach(x => x.classList.remove("on")); pill.classList.add("on"); syncMatch(); };
+    types.append(pill);
+  }
+  d.append(types);
+  d.append(matchBox);
+  syncMatch();
+
+  d.append(el("div", "cap", "\u041e\u0442\u0432\u0435\u0442 \u0431\u043e\u0442\u0430"));
+  const rb = el("div", "inp"); const ri = document.createElement("textarea"); ri.rows = 3; ri.style.resize = "none"; ri.placeholder = "\u0447\u0442\u043e \u043e\u0442\u0432\u0435\u0442\u0438\u0442 \u0431\u043e\u0442"; ri.value = r ? (r.reply || "") : ""; rb.append(ri); d.append(rb);
+
+  const err = el("div", "note"); d.append(err);
+  const row = el("div", "row");
+  const no = el("button", "ghost", "\u041e\u0442\u043c\u0435\u043d\u0430"); no.onclick = () => botEditor(b);
+  const ok = el("button", "cta", "\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c");
+  ok.onclick = async () => {
+    err.textContent = "";
+    const match = mi.value.trim(), reply = ri.value.trim();
+    if (type !== "all" && !match) { err.textContent = "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0442\u0435\u043a\u0441\u0442-\u0442\u0440\u0438\u0433\u0433\u0435\u0440."; return; }
+    if (!reply) { err.textContent = "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043e\u0442\u0432\u0435\u0442."; return; }
+    ok.disabled = true;
+    try {
+      if (r) {
+        await updateDoc(doc(db, "users", b.uid, "rules", r.id), { type, match, reply });
+      } else {
+        const s = await getDocs(collection(db, "users", b.uid, "rules"));
+        await addDoc(collection(db, "users", b.uid, "rules"), { type, match, reply, order: s.size, at: serverTimestamp() });
+      }
+      botEditor(b);
+      if (done) setTimeout(done, 50);
+    } catch (e) { err.textContent = say(e); ok.disabled = false; }
+  };
+  row.append(no, ok); d.append(row);
+  $("modal").classList.add("on");
+}
+
 
 function dialog(title, text, okText, onOk, danger){
   const d = $("dlg"); d.replaceChildren();
