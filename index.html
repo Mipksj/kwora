@@ -535,16 +535,16 @@ let isAdmin = false, kTaps = 0, kTimer = null;
 let call = null, incoming = null, ringInt = null, ringCtx = null;
 let awaitCode = false, pendingUser = null, codeBox = null;
 
-/* переживаем перезагрузку WebView: код и юзер в sessionStorage */
+/* переживаем выгрузку приложения: код и юзер в localStorage (10 мин, одноразовый) */
 function saveGate(){
-  try { sessionStorage.setItem("kwGate", JSON.stringify({ codeBox, pendingUser })); } catch (_) {}
+  try { localStorage.setItem("kwGate", JSON.stringify({ codeBox, pendingUser })); } catch (_) {}
 }
 function clearGate(){
-  try { sessionStorage.removeItem("kwGate"); } catch (_) {}
+  try { localStorage.removeItem("kwGate"); } catch (_) {}
 }
 function restoreGate(){
   try {
-    const raw = sessionStorage.getItem("kwGate");
+    const raw = localStorage.getItem("kwGate");
     if (!raw) return false;
     const g = JSON.parse(raw);
     if (!g || !g.codeBox || !g.pendingUser) { clearGate(); return false; }
