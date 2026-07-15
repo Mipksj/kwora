@@ -534,6 +534,25 @@ let subs = [], subMsgs = null, subRoles = null, busy = false;
 let isAdmin = false, kTaps = 0, kTimer = null;
 let call = null, incoming = null, ringInt = null, ringCtx = null;
 let awaitCode = false, pendingUser = null, codeBox = null;
+
+/* переживаем перезагрузку WebView: код и юзер в sessionStorage */
+function saveGate(){
+  try { sessionStorage.setItem("kwGate", JSON.stringify({ codeBox, pendingUser })); } catch (_) {}
+}
+function clearGate(){
+  try { sessionStorage.removeItem("kwGate"); } catch (_) {}
+}
+function restoreGate(){
+  try {
+    const raw = sessionStorage.getItem("kwGate");
+    if (!raw) return false;
+    const g = JSON.parse(raw);
+    if (!g || !g.codeBox || !g.pendingUser) { clearGate(); return false; }
+    if (Date.now() > g.codeBox.exp) { clearGate(); return "expired"; }
+    codeBox = g.codeBox; pendingUser = g.pendingUser; awaitCode = true;
+    return true;
+  } catch (_) { clearGate(); return false; }
+}
 let againAt = 0, againTimer = null;
 
 function el(t, c, x){ const n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; }
@@ -734,7 +753,7 @@ function cooldown(){
 }
 async function issueCode(to, name){
   $("gErr").textContent = "";
-  try { const code = await mailCode(to, name); codeBox = { code, exp: Date.now() + 600000, tries: 0 }; cooldown(); toast("Код отправлен"); }
+  try { const code = await mailCode(to, name); codeBox = { code, exp: Date.now() + 600000, tries: 0 }; saveGate(); cooldown(); toast("Код отправлен"); }
   catch (e) { $("gErr").textContent = "Письмо не ушло. Проверьте EmailJS."; }
 }
 async function gateStart(p){ awaitCode = true; pendingUser = p; showGate(p.mail); await issueCode(p.mail, p.name || p.nick); }
@@ -747,16 +766,16 @@ $("gOk").onclick = () => {
   const v = $("gCode").value.trim();
   if (Date.now() > codeBox.exp) { $("gErr").textContent = "Код истёк. Отправьте новый."; return; }
   if (v !== codeBox.code) {
-    codeBox.tries++;
+    codeBox.tries++; saveGate();
     if (codeBox.tries >= 5) { $("gBack").click(); toast("Слишком много попыток"); return; }
     $("gErr").textContent = "Неверный код."; return;
   }
   const p = pendingUser;
-  awaitCode = false; pendingUser = null; codeBox = null;
+  awaitCode = false; pendingUser = null; codeBox = null; clearGate();
   hideGate(); start(p);
 };
 $("gBack").onclick = async () => {
-  awaitCode = false; pendingUser = null; codeBox = null;
+  awaitCode = false; pendingUser = null; codeBox = null; clearGate();
   hideGate(); $("auth").classList.remove("hide"); $("go").disabled = false;
   try { await signOut(auth); } catch (_) {}
 };
@@ -839,8 +858,27 @@ $("go").onclick = async () => {
   }
 };
 
+let gateRestored = false;
 onAuthStateChanged(auth, async u => {
   if (busy || awaitCode) return;
+  // после перезагрузки WebView: если ждали код — вернуть экран кода, не пускать внутрь
+  if (!gateRestored && u) {
+    const g = restoreGate();
+    if (g === true) {
+      gateRestored = true;
+      $("splash").classList.add("hide");
+      showGate(pendingUser.mail);
+      return;
+    }
+    if (g === "expired") {
+      gateRestored = true;
+      try { await signOut(auth); } catch (_) {}
+      $("splash").classList.add("hide");
+      $("auth").classList.remove("hide");
+      $("note").textContent = "Код истёк. Войдите заново.";
+      return;
+    }
+  }
   $("splash").classList.add("hide");
   if (!u) { stopAll(); return; }
   try {
@@ -859,7 +897,7 @@ function stopAll(){
   me = null; active = null; chats = []; reqs = []; invites = []; badgeCat = [];
   friends = new Set(); blocks = new Set(); cache = new Map();
   isAdmin = false; kTaps = 0;
-  awaitCode = false; pendingUser = null; codeBox = null;
+  awaitCode = false; pendingUser = null; codeBox = null; clearGate();
   hideGate();
   $("chat").classList.remove("on");
   $("app").classList.add("hide");
