@@ -631,37 +631,71 @@ async function profile(uid){
 }
 
 function shrink(file, side, budget){
-  return new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onerror = () => rej(new Error("read"));
-    r.onload = () => {
-      const img = new Image();
-      const draw = () => {
-        let w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
-        if (!w || !h) { rej(new Error("empty")); return; }
-        const k = Math.min(1, side / Math.max(w, h));
-        w = Math.max(1, Math.round(w * k)); h = Math.max(1, Math.round(h * k));
-        const cv = document.createElement("canvas");
-        cv.width = w; cv.height = h;
-        const ctx = cv.getContext("2d");
-        // белый фон — иначе прозрачные участки станут чёрными в JPEG
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, w, h);
-        ctx.drawImage(img, 0, 0, w, h);
-        let q = 0.8, out = cv.toDataURL("image/jpeg", q);
-        while (out.length > budget && q > 0.28) { q -= 0.1; out = cv.toDataURL("image/jpeg", q); }
-        if (!out || out.length < 200) { rej(new Error("encode")); return; }
-        res(out);
+  const MIME_OK = /^image\/(jpeg|png|webp|gif|bmp)/i;
+
+  const finish = (cv, res, rej) => {
+    // проверка: не сплошной ли чёрный/пустой кадр получился
+    try {
+      const ctx = cv.getContext("2d");
+      const probe = ctx.getImageData(0, 0, Math.min(cv.width, 32), Math.min(cv.height, 32)).data;
+      let bright = 0;
+      for (let i = 0; i < probe.length; i += 4) {
+        if (probe[i] > 16 || probe[i+1] > 16 || probe[i+2] > 16) { bright++; if (bright > 4) break; }
+      }
+      if (bright <= 4) { rej(new Error("black")); return; }
+    } catch (_) {}
+    let q = 0.8, out = cv.toDataURL("image/jpeg", q);
+    while (out.length > budget && q > 0.28) { q -= 0.1; out = cv.toDataURL("image/jpeg", q); }
+    if (!out || out.length < 200) { rej(new Error("encode")); return; }
+    res(out);
+  };
+
+  const drawToCanvas = (srcW, srcH, drawFn) => {
+    const k = Math.min(1, side / Math.max(srcW, srcH));
+    const w = Math.max(1, Math.round(srcW * k)), h = Math.max(1, Math.round(srcH * k));
+    const cv = document.createElement("canvas");
+    cv.width = w; cv.height = h;
+    const ctx = cv.getContext("2d");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, w, h);
+    drawFn(ctx, w, h);
+    return cv;
+  };
+
+  return new Promise(async (res, rej) => {
+    // путь 1: createImageBitmap — современный декодер, лучше работает в WebView
+    if (window.createImageBitmap) {
+      try {
+        const bmp = await createImageBitmap(file);
+        if (bmp && bmp.width && bmp.height) {
+          const cv = drawToCanvas(bmp.width, bmp.height, (ctx, w, h) => ctx.drawImage(bmp, 0, 0, w, h));
+          try { bmp.close && bmp.close(); } catch (_) {}
+          let ok = false;
+          finish(cv, out => { ok = true; res(out); }, () => {});
+          if (ok) return; // получилось — выходим; чёрный кадр — идём на путь 2
+        }
+      } catch (_) { /* падаем на путь 2 */ }
+    }
+    fallbackImage();
+
+    // путь 2: классический Image
+    function fallbackImage(){
+      const r = new FileReader();
+      r.onerror = () => rej(new Error("Файл не читается"));
+      r.onload = () => {
+        const img = new Image();
+        const draw = () => {
+          const w0 = img.naturalWidth || img.width, h0 = img.naturalHeight || img.height;
+          if (!w0 || !h0) { rej(new Error("Формат не поддерживается. Попробуйте JPG или PNG.")); return; }
+          const cv = drawToCanvas(w0, h0, (ctx, w, h) => ctx.drawImage(img, 0, 0, w, h));
+          finish(cv, res, () => rej(new Error("Формат не поддерживается. Попробуйте JPG, PNG или скриншот.")));
+        };
+        img.onerror = () => rej(new Error("Формат не поддерживается. Попробуйте JPG или PNG."));
+        img.onload = () => { if (img.decode) img.decode().then(draw).catch(draw); else draw(); };
+        img.src = r.result;
       };
-      img.onerror = () => rej(new Error("img"));
-      img.onload = () => {
-        // гарантируем, что картинка декодирована перед отрисовкой (важно для HEIC/больших фото)
-        if (img.decode) { img.decode().then(draw).catch(draw); }
-        else draw();
-      };
-      img.src = r.result;
-    };
-    r.readAsDataURL(file);
+      r.readAsDataURL(file);
+    }
   });
 }
 
