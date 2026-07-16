@@ -537,6 +537,7 @@ const db = getFirestore(fb);
 const fns = getFunctions(fb);
 const callMailStart = httpsCallable(fns, "mailAuthStart");
 const callMailConfirm = httpsCallable(fns, "mailAuthConfirm");
+const callLoginLookup = httpsCallable(fns, "loginLookup");
 
 const $ = i => document.getElementById(i);
 const U = u => doc(db, "users", u);
@@ -844,9 +845,9 @@ $("go").onclick = async () => {
       busy = true; awaitCode = true;
       let accs = [];
       try {
-        const q = await getDocs(query(collection(db, "users"), where("mailLow", "==", id.toLowerCase()), limit(6)));
-        accs = q.docs.map(d => d.data()).filter(u => !u.isBot);
-      } catch (e) { fail(say(e)); return; }
+        const r = await callLoginLookup({ id });
+        accs = (r.data && r.data.accounts) || [];
+      } catch (e) { fail(fbErr(e)); return; }
       if (!accs.length) { fail("Аккаунт с такой почтой не найден."); return; }
 
       const matched = [];
@@ -883,9 +884,9 @@ $("go").onclick = async () => {
     busy = true; awaitCode = true;
     let acc = null;
     try {
-      const q = await getDocs(query(collection(db, "users"), where("nickLow", "==", id.toLowerCase()), limit(1)));
-      if (!q.empty) acc = q.docs[0].data();
-    } catch (e) { fail(say(e)); return; }
+      const r = await callLoginLookup({ id });
+      acc = r.data && r.data.account;
+    } catch (e) { fail(fbErr(e)); return; }
     if (!acc) { fail("Ник @" + id.toLowerCase() + " не найден."); return; }
     if (acc.banned) { fail("Этот аккаунт заблокирован."); return; }
     try {
