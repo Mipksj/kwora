@@ -319,35 +319,15 @@ img{display:block;max-width:100%}
   <section id="auth" class="hide">
     <div class="logo">Kwora</div>
     <div class="pane">
-      <div class="seg">
-        <button id="tabIn" class="on">Вход</button>
-        <button id="tabUp">Регистрация</button>
-      </div>
-      <div class="inp" id="fId"><input id="iId" placeholder="ник или почта" autocomplete="username" autocapitalize="none" autocorrect="off"></div>
-      <div class="inp hide" id="fNick"><span class="pre">@</span><input id="iNick" placeholder="ник" autocomplete="off" autocapitalize="none" autocorrect="off" maxlength="20"></div>
-      <div class="inp hide" id="fMail"><input id="iMail" type="email" placeholder="почта" autocomplete="email" autocapitalize="none" autocorrect="off"></div>
-      <div class="inp" id="fPass"><input id="iPass" type="password" placeholder="пароль" autocomplete="current-password"><button type="button" class="eye" data-eye="iPass"></button></div>
-      <button id="go" class="cta">Войти</button>
+      <h3 id="authTitle">Вход по почте</h3>
+      <div class="sub" id="authSub">Пришлём код — покажем ваши аккаунты. Пароли не нужны.</div>
+      <div class="inp" id="fId"><input id="iId" type="email" placeholder="почта" autocomplete="email" autocapitalize="none" autocorrect="off"></div>
+      <button id="go" class="cta">Получить код</button>
       <div id="note" class="note"></div>
-      <button id="btnForgot" class="plain">Забыли пароль?</button>
     </div>
   </section>
 
-  <!-- ======== КОД ======== -->
-  <section id="gate" class="hide">
-    <div class="logo" style="font-size:38px">Kwora</div>
-    <div class="pane">
-      <h3>Код из письма</h3>
-      <div class="sub">Отправили шесть цифр на <span id="gMail" class="mono"></span></div>
-      <div class="inp codein"><input id="gCode" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code"></div>
-      <button id="gOk" class="cta">Подтвердить</button>
-      <div id="gErr" class="note"></div>
-      <button id="gAgain" class="ghost">Отправить снова</button>
-      <button id="gBack" class="plain">Отмена</button>
-    </div>
-  </section>
-
-  <!-- ======== ЗАБЫЛ ПАРОЛЬ / ВЫБОР АККАУНТА ======== -->
+  <!-- ======== КОД / АККАУНТЫ ======== -->
   <section id="forgot" class="hide">
     <div class="logo" style="font-size:38px">Kwora</div>
     <div class="pane">
@@ -524,6 +504,125 @@ const PERMS = [
 ];
 const ROLE_COLORS = ["#7B61FF","#3EA8FF","#34D399","#F5B441","#FF6B9D","#FC5C7D","#06B6D4","#A855F7","#EC4899","#9AA4B2"];
 
+/* ============ ЯЗЫКИ ============ */
+const LANGS = [["ru","Русский"],["en","English"],["es","Español"],["fr","Français"]];
+const L = {
+ru:{tabChats:"Чаты",tabPeople:"Люди",tabBots:"Боты",tabMe:"Профиль",
+signTitle:"Вход по почте",signSub:"Пришлём код — покажем ваши аккаунты. Пароли не нужны.",mailPh:"почта",getCode:"Получить код",badMail:"Почта написана неверно.",
+codeTitle:"Код из письма",codeSub:"Отправили шесть цифр на ",confirm:"Подтвердить",resend:"Отправить снова",codeSent:"Код отправлен",six:"Введите шесть цифр.",back:"Назад",
+pickTitle:"Выберите аккаунт",accOn:" аккаунт(а) на ",newAcc:"+ Создать новый аккаунт",regTitle:"Новый аккаунт",regOn:"На почте ",createGo:"Создать и войти",namePh:"Имя",nickPh:"ник",nickRule:"Ник: 3–20 знаков, латиница, цифры и _",toList:"К списку",
+langTitle:"Язык / Language",langSub:"Выберите язык интерфейса",
+searchPh:"Найти по нику",emptyTitle:"Пока пусто",emptyText:"Найдите человека по нику или соберите группу.",you:"Вы: ",noMsgs:"Нет сообщений",photo:"Фото",members:" участников",membersShort:" участн.",
+capInv:"Приглашения в группы",capReq:"Заявки в друзья",capFriends:"Друзья",capBlocked:"Заблокированные",accept:"Принять",no:"Нет",enter:"Войти",unblock:"Разблокировать",noFriends:"Друзей пока нет. Найдите человека по нику и отправьте заявку.",invText:"Приглашение в группу",
+addFriend:"Добавить друга",newGroup:"Создать группу",
+msgPh:"Сообщение",today:"Сегодня",yesterday:"Вчера",lockBlocked:"Вы заблокировали @",lockFriends:" принимает сообщения только от друзей",sendReq:"Отправить заявку в друзья",notDelivered:T("notDelivered"),
+mopen:"Открыть профиль",mopenG:"Открыть профиль группы",maddF:"Добавить в друзья",mdelF:"Удалить из друзей",mblock:"Заблокировать @",mdelChat:"Удалить чат у обоих",maddM:"Добавить участника",mleave:"Выйти из группы",mdelG:"Удалить группу",mdelMsg:"Удалить сообщение",mdelMod:"Удалить (модерация)",cancel:"Отмена",deleted:"Удалено",
+myBadges:"Мои значки",fName:"Имя",fAbout:"О себе",fAboutPh:"Пара слов",fNick:"Ник",fMail:"Почта",change:"Изменить",fTick:"Галочка",tickYes:"Подтверждён",tickAsk:"Заявка на рассмотрении",tickNo:"Нет",apply:"Подать заявку",appSent:"Заявка отправлена",
+capPriv:"Приватность",whoWrites:"Кто может мне писать и звонить",all:"Все",onlyFriends:"Только друзья",logout:"Выйти из аккаунта",capDev:"Разработчикам",botSub:"создание ботов",join:"Присоединиться",joined:"Добро пожаловать в Bot Creator",capLang:"Язык",
+myBots:"Мои боты",botsEmptyT:"Ботов пока нет",botsEmptyX:"Создай первого — он будет отвечать по правилам круглосуточно.",createBot:"Создать бота",cfg:"Настроить",ofBots:" из ",botsW:" ботов",limitHit:"Достигнут лимит ",
+newBot:"Новый бот",newBotSub:"Имя и ник. Ник уникален, по нему бота найдут в поиске.",botName:"Имя бота",created:"Бот создан",nickTaken:"Такой ник занят.",enterName:"Введите имя.",
+rules:"Правила ответов",noRules:"Правил нет. Добавьте первое.",addRule:"+ Правило",editRule:"Изменить правило",newRule:"Новое правило",typeCap:"Тип срабатывания",triggerPh:"текст-триггер",replyCap:"Ответ бота",replyPh:"что ответит бот",enterTrig:"Введите текст-триггер.",enterReply:"Введите ответ.",save:"Сохранить",avatar:"Аватар",desc:"Описание",openChat:"Открыть чат",delBot:"Удалить бота",delBotQ:"Удалить бота?",delBotX:"Бот и все его правила пропадут.",delete:"Удалить",close:"Закрыть",
+tEq:"Точное совпадение",tCon:"Содержит слово",tCmd:"Команда (/что-то)",tAll:"На любое сообщение",
+badgeGift:"Вам доступен значок",good:"Хорошо",
+saved:"Сохранено",updated:"Обновлено",nameUpd:"Имя обновлено",avaUpd:"Аватар обновлён",
+grpCreated:"Группа создана",inGroup:"Вы в группе",youLeft:"Вы вышли",kickT:"Убрать",invite:"Пригласить",editG:"Изменить",rolesB:"Роли",leave:"Выйти",write:"Написать",toFriends:"В друзья",unfriended:"Удалён из друзей",nowFriends:"Теперь вы друзья",blockedT:"Заблокирован",role:"Роль",owner:"владелец",block:"Заблокировать",create:"Создать"},
+en:{tabChats:"Chats",tabPeople:"People",tabBots:"Bots",tabMe:"Profile",
+signTitle:"Sign in with email",signSub:"We'll send a code and show your accounts. No passwords.",mailPh:"email",getCode:"Get code",badMail:"Invalid email address.",
+codeTitle:"Code from email",codeSub:"We sent six digits to ",confirm:"Confirm",resend:"Send again",codeSent:"Code sent",six:"Enter six digits.",back:"Back",
+pickTitle:"Choose account",accOn:" account(s) on ",newAcc:"+ Create new account",regTitle:"New account",regOn:"On ",createGo:"Create & sign in",namePh:"Name",nickPh:"nickname",nickRule:"Nick: 3–20 chars, latin letters, digits, _",toList:"Back to list",
+langTitle:"Язык / Language",langSub:"Choose interface language",
+searchPh:"Search by nick",emptyTitle:"Nothing yet",emptyText:"Find someone by nickname or create a group.",you:"You: ",noMsgs:"No messages",photo:"Photo",members:" members",membersShort:" memb.",
+capInv:"Group invites",capReq:"Friend requests",capFriends:"Friends",capBlocked:"Blocked",accept:"Accept",no:"No",enter:"Join",unblock:"Unblock",noFriends:"No friends yet. Find someone by nick and send a request.",invText:"Group invitation",
+addFriend:"Add friend",newGroup:"Create group",
+msgPh:"Message",today:"Today",yesterday:"Yesterday",lockBlocked:"You blocked @",lockFriends:" accepts messages from friends only",sendReq:"Send friend request",notDelivered:"Not delivered: this person limited who can write to them.",
+mopen:"Open profile",mopenG:"Open group profile",maddF:"Add friend",mdelF:"Remove friend",mblock:"Block @",mdelChat:"Delete chat for both",maddM:"Add member",mleave:"Leave group",mdelG:"Delete group",mdelMsg:"Delete message",mdelMod:"Delete (moderation)",cancel:"Cancel",deleted:"Deleted",
+myBadges:"My badges",fName:"Name",fAbout:"About",fAboutPh:"A few words",fNick:"Nick",fMail:"Email",change:"Change",fTick:"Verified badge",tickYes:"Verified",tickAsk:"Under review",tickNo:"No",apply:"Apply",appSent:"Request sent",
+capPriv:"Privacy",whoWrites:"Who can message and call me",all:"Everyone",onlyFriends:"Friends only",logout:"Log out",capDev:"For developers",botSub:"bot creation",join:"Join",joined:"Welcome to Bot Creator",capLang:"Language",
+myBots:"My bots",botsEmptyT:"No bots yet",botsEmptyX:"Create your first one — it replies by rules 24/7.",createBot:"Create bot",cfg:"Configure",ofBots:" of ",botsW:" bots",limitHit:"Limit reached: ",
+newBot:"New bot",newBotSub:"Name and nick. Nick is unique, people find the bot by it.",botName:"Bot name",created:"Bot created",nickTaken:"This nick is taken.",enterName:"Enter a name.",
+rules:"Reply rules",noRules:"No rules. Add the first one.",addRule:"+ Rule",editRule:"Edit rule",newRule:"New rule",typeCap:"Trigger type",triggerPh:"trigger text",replyCap:"Bot reply",replyPh:"what the bot replies",enterTrig:"Enter trigger text.",enterReply:"Enter a reply.",save:"Save",avatar:"Avatar",desc:"Description",openChat:"Open chat",delBot:"Delete bot",delBotQ:"Delete bot?",delBotX:"The bot and all its rules will be gone.",delete:"Delete",close:"Close",
+tEq:"Exact match",tCon:"Contains word",tCmd:"Command (/smth)",tAll:"Any message",
+badgeGift:"You've earned a badge",good:"OK",
+saved:"Saved",updated:"Updated",nameUpd:"Name updated",avaUpd:"Avatar updated",
+grpCreated:"Group created",inGroup:"You're in",youLeft:"You left",kickT:"Kick",invite:"Invite",editG:"Edit",rolesB:"Roles",leave:"Leave",write:"Message",toFriends:"Add friend",unfriended:"Removed from friends",nowFriends:"You're friends now",blockedT:"Blocked",role:"Role",owner:"owner",block:"Block",create:"Create"},
+es:{tabChats:"Chats",tabPeople:"Gente",tabBots:"Bots",tabMe:"Perfil",
+signTitle:"Entrar con correo",signSub:"Enviamos un código y mostramos tus cuentas. Sin contraseñas.",mailPh:"correo",getCode:"Recibir código",badMail:"Correo no válido.",
+codeTitle:"Código del correo",codeSub:"Enviamos seis dígitos a ",confirm:"Confirmar",resend:"Enviar de nuevo",codeSent:"Código enviado",six:"Introduce seis dígitos.",back:"Atrás",
+pickTitle:"Elige la cuenta",accOn:" cuenta(s) en ",newAcc:"+ Crear cuenta nueva",regTitle:"Cuenta nueva",regOn:"En ",createGo:"Crear y entrar",namePh:"Nombre",nickPh:"nick",nickRule:"Nick: 3–20 caract., latinas, dígitos, _",toList:"A la lista",
+langTitle:"Язык / Language",langSub:"Elige el idioma",
+searchPh:"Buscar por nick",emptyTitle:"Nada aún",emptyText:"Busca a alguien por nick o crea un grupo.",you:"Tú: ",noMsgs:"Sin mensajes",photo:"Foto",members:" miembros",membersShort:" miemb.",
+capInv:"Invitaciones a grupos",capReq:"Solicitudes de amistad",capFriends:"Amigos",capBlocked:"Bloqueados",accept:"Aceptar",no:"No",enter:"Entrar",unblock:"Desbloquear",noFriends:"Aún sin amigos. Busca por nick y envía solicitud.",invText:"Invitación al grupo",
+addFriend:"Añadir amigo",newGroup:"Crear grupo",
+msgPh:"Mensaje",today:"Hoy",yesterday:"Ayer",lockBlocked:"Bloqueaste a @",lockFriends:" solo acepta mensajes de amigos",sendReq:"Enviar solicitud",notDelivered:"No entregado: la persona limitó quién puede escribirle.",
+mopen:"Abrir perfil",mopenG:"Perfil del grupo",maddF:"Añadir amigo",mdelF:"Quitar amigo",mblock:"Bloquear @",mdelChat:"Borrar chat para ambos",maddM:"Añadir miembro",mleave:"Salir del grupo",mdelG:"Eliminar grupo",mdelMsg:"Borrar mensaje",mdelMod:"Borrar (moderación)",cancel:"Cancelar",deleted:"Borrado",
+myBadges:"Mis insignias",fName:"Nombre",fAbout:"Sobre mí",fAboutPh:"Unas palabras",fNick:"Nick",fMail:"Correo",change:"Cambiar",fTick:"Verificación",tickYes:"Verificado",tickAsk:"En revisión",tickNo:"No",apply:"Solicitar",appSent:"Solicitud enviada",
+capPriv:"Privacidad",whoWrites:"Quién puede escribirme y llamarme",all:"Todos",onlyFriends:"Solo amigos",logout:"Cerrar sesión",capDev:"Para desarrolladores",botSub:"creación de bots",join:"Unirse",joined:"Bienvenido a Bot Creator",capLang:"Idioma",
+myBots:"Mis bots",botsEmptyT:"Aún sin bots",botsEmptyX:"Crea el primero: responde por reglas 24/7.",createBot:"Crear bot",cfg:"Configurar",ofBots:" de ",botsW:" bots",limitHit:"Límite alcanzado: ",
+newBot:"Nuevo bot",newBotSub:"Nombre y nick. El nick es único, así encuentran al bot.",botName:"Nombre del bot",created:"Bot creado",nickTaken:"Ese nick está ocupado.",enterName:"Escribe un nombre.",
+rules:"Reglas de respuesta",noRules:"Sin reglas. Añade la primera.",addRule:"+ Regla",editRule:"Editar regla",newRule:"Nueva regla",typeCap:"Tipo de activación",triggerPh:"texto disparador",replyCap:"Respuesta del bot",replyPh:"qué responde el bot",enterTrig:"Escribe el disparador.",enterReply:"Escribe la respuesta.",save:"Guardar",avatar:"Avatar",desc:"Descripción",openChat:"Abrir chat",delBot:"Eliminar bot",delBotQ:"¿Eliminar bot?",delBotX:"El bot y sus reglas desaparecerán.",delete:"Eliminar",close:"Cerrar",
+tEq:"Coincidencia exacta",tCon:"Contiene palabra",tCmd:"Comando (/algo)",tAll:"Cualquier mensaje",
+badgeGift:"Insignia desbloqueada",good:"Vale",
+saved:"Guardado",updated:"Actualizado",nameUpd:"Nombre actualizado",avaUpd:"Avatar actualizado",
+grpCreated:"Grupo creado",inGroup:"Estás dentro",youLeft:"Saliste",kickT:"Expulsar",invite:"Invitar",editG:"Editar",rolesB:"Roles",leave:"Salir",write:"Escribir",toFriends:"Añadir",unfriended:"Quitado de amigos",nowFriends:"Ahora sois amigos",blockedT:"Bloqueado",role:"Rol",owner:"dueño",block:"Bloquear",create:"Crear"},
+fr:{tabChats:"Chats",tabPeople:"Gens",tabBots:"Bots",tabMe:"Profil",
+signTitle:"Connexion par e-mail",signSub:"On envoie un code et on montre vos comptes. Sans mot de passe.",mailPh:"e-mail",getCode:"Recevoir le code",badMail:"Adresse e-mail invalide.",
+codeTitle:"Code de l'e-mail",codeSub:"Six chiffres envoyés à ",confirm:"Confirmer",resend:"Renvoyer",codeSent:"Code envoyé",six:"Entrez six chiffres.",back:"Retour",
+pickTitle:"Choisir le compte",accOn:" compte(s) sur ",newAcc:"+ Créer un compte",regTitle:"Nouveau compte",regOn:"Sur ",createGo:"Créer et entrer",namePh:"Prénom",nickPh:"pseudo",nickRule:"Pseudo: 3–20 car., latin, chiffres, _",toList:"À la liste",
+langTitle:"Язык / Language",langSub:"Choisissez la langue",
+searchPh:"Chercher par pseudo",emptyTitle:"Rien pour l'instant",emptyText:"Trouvez quelqu'un par pseudo ou créez un groupe.",you:"Vous: ",noMsgs:"Aucun message",photo:"Photo",members:" membres",membersShort:" memb.",
+capInv:"Invitations aux groupes",capReq:"Demandes d'amis",capFriends:"Amis",capBlocked:"Bloqués",accept:"Accepter",no:"Non",enter:"Rejoindre",unblock:"Débloquer",noFriends:"Pas encore d'amis. Trouvez par pseudo et envoyez une demande.",invText:"Invitation au groupe",
+addFriend:"Ajouter un ami",newGroup:"Créer un groupe",
+msgPh:"Message",today:"Aujourd'hui",yesterday:"Hier",lockBlocked:"Vous avez bloqué @",lockFriends:" n'accepte que les messages d'amis",sendReq:"Envoyer une demande",notDelivered:"Non livré : la personne a limité qui peut lui écrire.",
+mopen:"Ouvrir le profil",mopenG:"Profil du groupe",maddF:"Ajouter en ami",mdelF:"Retirer des amis",mblock:"Bloquer @",mdelChat:"Supprimer le chat pour les deux",maddM:"Ajouter un membre",mleave:"Quitter le groupe",mdelG:"Supprimer le groupe",mdelMsg:"Supprimer le message",mdelMod:"Supprimer (modération)",cancel:"Annuler",deleted:"Supprimé",
+myBadges:"Mes badges",fName:"Prénom",fAbout:"À propos",fAboutPh:"Quelques mots",fNick:"Pseudo",fMail:"E-mail",change:"Changer",fTick:"Badge vérifié",tickYes:"Vérifié",tickAsk:"En examen",tickNo:"Non",apply:"Demander",appSent:"Demande envoyée",
+capPriv:"Confidentialité",whoWrites:"Qui peut m'écrire et m'appeler",all:"Tous",onlyFriends:"Amis seulement",logout:"Se déconnecter",capDev:"Pour développeurs",botSub:"création de bots",join:"Rejoindre",joined:"Bienvenue dans Bot Creator",capLang:"Langue",
+myBots:"Mes bots",botsEmptyT:"Pas encore de bots",botsEmptyX:"Créez le premier : il répond par règles 24h/24.",createBot:"Créer un bot",cfg:"Configurer",ofBots:" sur ",botsW:" bots",limitHit:"Limite atteinte : ",
+newBot:"Nouveau bot",newBotSub:"Nom et pseudo. Le pseudo est unique pour trouver le bot.",botName:"Nom du bot",created:"Bot créé",nickTaken:"Ce pseudo est pris.",enterName:"Entrez un nom.",
+rules:"Règles de réponse",noRules:"Aucune règle. Ajoutez la première.",addRule:"+ Règle",editRule:"Modifier la règle",newRule:"Nouvelle règle",typeCap:"Type de déclenchement",triggerPh:"texte déclencheur",replyCap:"Réponse du bot",replyPh:"ce que répond le bot",enterTrig:"Entrez le déclencheur.",enterReply:"Entrez la réponse.",save:"Enregistrer",avatar:"Avatar",desc:"Description",openChat:"Ouvrir le chat",delBot:"Supprimer le bot",delBotQ:"Supprimer le bot ?",delBotX:"Le bot et ses règles disparaîtront.",delete:"Supprimer",close:"Fermer",
+tEq:"Correspondance exacte",tCon:"Contient un mot",tCmd:"Commande (/qqch)",tAll:"Tout message",
+badgeGift:"Badge débloqué",good:"OK",
+saved:"Enregistré",updated:"Mis à jour",nameUpd:"Prénom mis à jour",avaUpd:"Avatar mis à jour",
+grpCreated:"Groupe créé",inGroup:"Vous y êtes",youLeft:"Vous êtes parti",kickT:"Exclure",invite:"Inviter",editG:"Modifier",rolesB:"Rôles",leave:"Quitter",write:"Écrire",toFriends:"Ajouter",unfriended:"Retiré des amis",nowFriends:"Vous êtes amis",blockedT:"Bloqué",role:"Rôle",owner:"proprio",block:"Bloquer",create:"Créer"}
+};
+let lang = (function(){ try { return localStorage.getItem("kwLang") || ""; } catch(_) { return ""; } })() ||
+  ((navigator.language || "ru").slice(0,2).match(/^(en|es|fr)$/) ? (navigator.language||"ru").slice(0,2) : "ru");
+const T = k => (L[lang] && L[lang][k]) || L.ru[k] || k;
+
+function applyLang(newLang, persistLocal){
+  if (newLang) lang = newLang;
+  if (persistLocal) { try { localStorage.setItem("kwLang", lang); } catch(_) {} }
+  // статические тексты
+  const set = (id, txt, ph) => { const n = $(id); if (!n) return; if (ph) n.placeholder = txt; else n.textContent = txt; };
+  set("authTitle", T("signTitle")); set("authSub", T("signSub"));
+  const iId = $("iId"); if (iId) iId.placeholder = T("mailPh");
+  set("go", T("getCode"));
+  set("fgBack", T("back"));
+  // вкладки: текстовый узел после svg
+  const tabTxt = (id, key) => { const b = $(id); if (!b) return; for (const n of b.childNodes) { if (n.nodeType === 3 && n.textContent.trim()) { n.textContent = "\n          " + T(key) + "\n        "; return; } } };
+  tabTxt("tChats","tabChats"); tabTxt("tPeople","tabPeople"); tabTxt("tBots","tabBots"); tabTxt("tMe","tabMe");
+  const f = $("iFind"); if (f) f.placeholder = T("searchPh");
+  const m = $("iMsg"); if (m) m.placeholder = T("msgPh");
+}
+
+/* экран выбора языка */
+function langPickScreen(afterPick){
+  fgShow(T("langTitle"), T("langSub"));
+  const b = $("fgBody"); b.replaceChildren();
+  for (const [code, label] of LANGS) {
+    const btn = el("button", "ghost", label); btn.style.marginTop = "8px";
+    if (code === lang) btn.classList.add("on");
+    btn.onclick = async () => {
+      applyLang(code, true);
+      if (me) { try { await updateDoc(U(me.uid), { lang: code }); } catch(_) {} }
+      $("forgot").classList.add("hide");
+      if (afterPick) afterPick();
+    };
+    b.append(btn);
+  }
+  $("fgBack").classList.add("hide");
+}
+
+
 const ICE = {
   iceServers: [
     { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"] }
@@ -554,24 +653,7 @@ let isAdmin = false, kTaps = 0, kTimer = null;
 let call = null, incoming = null, ringInt = null, ringCtx = null;
 let awaitCode = false, pendingUser = null, codeBox = null;
 
-/* переживаем выгрузку приложения: код и юзер в localStorage (10 мин, одноразовый) */
-function saveGate(){
-  try { localStorage.setItem("kwGate", JSON.stringify({ codeBox, pendingUser })); } catch (_) {}
-}
-function clearGate(){
-  try { localStorage.removeItem("kwGate"); } catch (_) {}
-}
-function restoreGate(){
-  try {
-    const raw = localStorage.getItem("kwGate");
-    if (!raw) return false;
-    const g = JSON.parse(raw);
-    if (!g || !g.codeBox || !g.pendingUser) { clearGate(); return false; }
-    if (Date.now() > g.codeBox.exp) { clearGate(); return "expired"; }
-    codeBox = g.codeBox; pendingUser = g.pendingUser; awaitCode = true;
-    return true;
-  } catch (_) { clearGate(); return false; }
-}
+
 let againAt = 0, againTimer = null;
 
 function el(t, c, x){ const n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; }
@@ -591,6 +673,7 @@ document.addEventListener("click", e => {
 });
 function paintEyes(root){ (root || document).querySelectorAll(".eye").forEach(b => { if (!b.innerHTML.trim()) b.innerHTML = EYE_ON; }); }
 paintEyes();
+applyLang();
 
 function passField(ph, ac){
   const box = el("div", "inp");
@@ -654,9 +737,9 @@ function shortT(t){
 function dayName(t){
   const d = toDate(t); if (!d) return "";
   const n = new Date();
-  if (d.toDateString() === n.toDateString()) return "Сегодня";
+  if (d.toDateString() === n.toDateString()) return T("today");
   const y = new Date(n); y.setDate(y.getDate() - 1);
-  if (d.toDateString() === y.toDateString()) return "Вчера";
+  if (d.toDateString() === y.toDateString()) return T("yesterday");
   return d.toLocaleDateString("ru-RU", { day: "2-digit", month: "long" });
 }
 
@@ -753,67 +836,12 @@ async function mailCode(to, name){
   });
   return code;
 }
-function showGate(mailTo){
-  $("auth").classList.add("hide"); $("app").classList.add("hide"); $("gate").classList.remove("hide");
-  $("gMail").textContent = maskMail(mailTo);
-  $("gCode").value = ""; $("gErr").textContent = "";
-  setTimeout(() => $("gCode").focus(), 100);
-}
-function hideGate(){ $("gate").classList.add("hide"); clearInterval(againTimer); $("gAgain").disabled = false; $("gAgain").textContent = "Отправить снова"; }
-function cooldown(){
-  againAt = Date.now() + 45000;
-  clearInterval(againTimer);
-  const t = () => {
-    const s = Math.ceil((againAt - Date.now()) / 1000);
-    if (s <= 0) { clearInterval(againTimer); $("gAgain").disabled = false; $("gAgain").textContent = "Отправить снова"; return; }
-    $("gAgain").disabled = true; $("gAgain").textContent = "Отправить снова через " + s + " с";
-  };
-  t(); againTimer = setInterval(t, 1000);
-}
-async function issueCode(to, name){
-  $("gErr").textContent = "";
-  try { const code = await mailCode(to, name); codeBox = { code, exp: Date.now() + 600000, tries: 0 }; saveGate(); cooldown(); toast("Код отправлен"); }
-  catch (e) { $("gErr").textContent = "Письмо не ушло. Проверьте EmailJS."; }
-}
-async function gateStart(p){ awaitCode = true; pendingUser = p; showGate(p.mail); await issueCode(p.mail, p.name || p.nick); }
 
-$("gAgain").onclick = () => { if (!pendingUser || Date.now() < againAt) return; issueCode(pendingUser.mail, pendingUser.name || pendingUser.nick); };
-$("gCode").oninput = e => { e.target.value = e.target.value.replace(/\D/g, ""); };
-$("gCode").onkeydown = e => { if (e.key === "Enter") $("gOk").click(); };
-$("gOk").onclick = () => {
-  if (!codeBox) { $("gErr").textContent = "Сначала запросите код."; return; }
-  const v = $("gCode").value.trim();
-  if (Date.now() > codeBox.exp) { $("gErr").textContent = "Код истёк. Отправьте новый."; return; }
-  if (v !== codeBox.code) {
-    codeBox.tries++; saveGate();
-    if (codeBox.tries >= 5) { $("gBack").click(); toast("Слишком много попыток"); return; }
-    $("gErr").textContent = "Неверный код."; return;
-  }
-  const p = pendingUser;
-  awaitCode = false; pendingUser = null; codeBox = null; clearGate();
-  hideGate(); start(p);
-};
-$("gBack").onclick = async () => {
-  awaitCode = false; pendingUser = null; codeBox = null; clearGate();
-  hideGate(); $("auth").classList.remove("hide"); $("go").disabled = false;
-  try { await signOut(auth); } catch (_) {}
-};
+
+
 
 /* ============ ВХОД ============ */
-$("tabIn").onclick = () => setMode("in");
-$("tabUp").onclick = () => setMode("up");
-function setMode(m){
-  mode = m;
-  $("tabIn").classList.toggle("on", m === "in");
-  $("tabUp").classList.toggle("on", m === "up");
-  $("fId").classList.toggle("hide", m !== "in");
-  $("fNick").classList.toggle("hide", m !== "up");
-  $("fMail").classList.toggle("hide", m !== "up");
-  $("go").textContent = m === "up" ? "Создать аккаунт" : "Войти";
-  $("iPass").autocomplete = m === "up" ? "new-password" : "current-password";
-  $("btnForgot").classList.toggle("hide", m !== "in");
-  $("note").textContent = "";
-}
+
 
 const RU = {
   "auth/invalid-email":"Ник или почта написаны неверно.",
@@ -831,103 +859,16 @@ const say = e => RU[e.code] || ("Ошибка: " + (e.code || e.message));
 const loginMail = id => (id.includes("@") ? id : id.toLowerCase() + DOM);
 
 $("go").onclick = async () => {
-  const pass = $("iPass").value;
+  const mail = $("iId").value.trim();
   $("note").textContent = "";
-
-  if (mode === "in") {
-    const id = $("iId").value.trim().replace(/^@/, "");
-    if (!id || !pass) { $("note").textContent = "Заполните оба поля."; return; }
-    $("go").disabled = true;
-    const fail = t => { busy = false; awaitCode = false; $("note").textContent = t; $("go").disabled = false; };
-
-    // ---- вход по ПОЧТЕ: ищем все аккаунты, пробуем пароль на каждом ----
-    if (id.includes("@") && id.includes(".")) {
-      busy = true; awaitCode = true;
-      let accs = [];
-      try {
-        const r = await callLoginLookup({ id });
-        accs = (r.data && r.data.accounts) || [];
-      } catch (e) { fail(fbErr(e)); return; }
-      if (!accs.length) { fail("Аккаунт с такой почтой не найден."); return; }
-
-      const matched = [];
-      for (const a of accs) {
-        const am = a.authMail || ((a.nickLow || "") + DOM);
-        try {
-          await signInWithEmailAndPassword(auth, am, pass);
-          matched.push(a);
-          await signOut(auth);
-        } catch (e) {
-          if (e.code === "auth/too-many-requests") { fail(say(e)); return; }
-        }
-      }
-      if (!matched.length) { fail("Неверный пароль."); return; }
-
-      const live = matched.filter(a => !a.banned);
-      if (!live.length) { fail("Этот аккаунт заблокирован."); return; }
-
-      if (live.length === 1) {
-        try {
-          await signInWithEmailAndPassword(auth, live[0].authMail || (live[0].nickLow + DOM), pass);
-          busy = false;
-          await gateStart(live[0]);
-        } catch (e) { fail(say(e)); }
-        return;
-      }
-      busy = false;
-      pickAccountScreen(live, pass);
-      $("go").disabled = false;
-      return;
-    }
-
-    // ---- вход по НИКУ: сперва находим ник в базе ----
-    busy = true; awaitCode = true;
-    let acc = null;
-    try {
-      const r = await callLoginLookup({ id });
-      acc = r.data && r.data.account;
-    } catch (e) { fail(fbErr(e)); return; }
-    if (!acc) { fail("Ник @" + id.toLowerCase() + " не найден."); return; }
-    if (acc.banned) { fail("Этот аккаунт заблокирован."); return; }
-    try {
-      await signInWithEmailAndPassword(auth, acc.authMail || (acc.nickLow + DOM), pass);
-      busy = false;
-      const p = acc;
-      if (!p.mailLow && p.mail) { try { await updateDoc(U(p.uid), { mailLow: p.mail.toLowerCase() }); } catch (_) {} }
-      if (!p.mail) { await signOut(auth); fail("У аккаунта не указана почта."); return; }
-      await gateStart(p);
-    } catch (e) {
-      if (e.code === "auth/invalid-credential" || e.code === "auth/wrong-password") fail("Неверный пароль.");
-      else fail(say(e));
-    }
-    return;
-  }
-
-  const nick = $("iNick").value.trim().replace(/^@/, ""), low = nick.toLowerCase();
-  const mail = $("iMail").value.trim(), mailLow = mail.toLowerCase();
-  if (!/^[a-z0-9_]{3,20}$/.test(low)) { $("note").textContent = "Ник: 3–20 знаков, латиница, цифры и _"; return; }
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) { $("note").textContent = "Почта написана неверно."; return; }
-  if (pass.length < 6) { $("note").textContent = "Пароль короче 6 символов."; return; }
-
-  $("go").disabled = true; busy = true; awaitCode = true;
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) { $("note").textContent = T("badMail"); return; }
+  $("go").disabled = true;
   try {
-    const c = await createUserWithEmailAndPassword(auth, low + DOM, pass);
-    const s = await getDocs(query(collection(db, "users"), where("mailLow", "==", mailLow), limit(MAX_PER_MAIL + 1)));
-    if (s.size >= MAX_PER_MAIL) {
-      await deleteUser(c.user); busy = false; awaitCode = false;
-      $("note").textContent = "На эту почту уже " + MAX_PER_MAIL + " аккаунта. Больше нельзя."; $("go").disabled = false; return;
-    }
-    await setDoc(U(c.user.uid), {
-      uid: c.user.uid, nick, nickLow: low, name: nick, mail, mailLow, authMail: low + DOM,
-      photo: "", bio: "", whoCanWrite: "all", verified: false, verifyAsked: false,
-      badges: [], banned: false, createdAt: serverTimestamp()
-    });
-    busy = false;
-    await gateStart((await getDoc(U(c.user.uid))).data());
-  } catch (e) {
-    busy = false; awaitCode = false; $("note").textContent = say(e); $("go").disabled = false;
-    if (auth.currentUser) { try { await deleteUser(auth.currentUser); } catch (_) {} }
-  }
+    await callMailStart({ mail });
+    FG.mail = mail;
+    fgStepCode();
+  } catch (e) { $("note").textContent = fbErr(e); }
+  $("go").disabled = false;
 };
 
 
@@ -938,6 +879,7 @@ function fgShow(title, sub){
   $("auth").classList.add("hide"); $("gate").classList.add("hide");
   $("splash").classList.add("hide"); $("app").classList.add("hide");
   $("forgot").classList.remove("hide");
+  $("fgBack").classList.remove("hide");
   $("fgTitle").textContent = title;
   $("fgSub").textContent = sub || "";
 }
@@ -973,17 +915,17 @@ function fgStepMail(){
 
 /* шаг 2: ввод кода */
 function fgStepCode(){
-  fgShow("Код из письма", "Отправили шесть цифр на " + maskMail(FG.mail));
+  fgShow(T("codeTitle"), T("codeSub") + maskMail(FG.mail));
   const b = $("fgBody"); b.replaceChildren();
   const box = el("div", "inp codein");
   const i = document.createElement("input"); i.inputMode = "numeric"; i.maxLength = 6; i.placeholder = "000000";
   i.oninput = () => { i.value = i.value.replace(/\D/g, ""); };
   box.append(i); b.append(box);
   const err = el("div", "note"); b.append(err);
-  const ok = el("button", "cta", "Подтвердить");
+  const ok = el("button", "cta", T("confirm"));
   ok.onclick = async () => {
     const code = i.value.trim();
-    if (code.length !== 6) { err.textContent = "Введите шесть цифр."; return; }
+    if (code.length !== 6) { err.textContent = T("six"); return; }
     ok.disabled = true; err.textContent = "";
     try {
       const r = await callMailConfirm({ mail: FG.mail, code, action: "list" });
@@ -992,123 +934,101 @@ function fgStepCode(){
     } catch (e) { err.textContent = fbErr(e); ok.disabled = false; }
   };
   b.append(ok);
+  const again = el("button", "ghost", T("resend")); again.style.marginTop = "8px";
+  again.onclick = async () => {
+    again.disabled = true; err.textContent = "";
+    try { await callMailStart({ mail: FG.mail }); toast(T("codeSent")); }
+    catch (e) { err.textContent = fbErr(e); }
+    setTimeout(() => { again.disabled = false; }, 30000);
+  };
+  b.append(again);
   setTimeout(() => i.focus(), 100);
 }
 
 /* шаг 3: список аккаунтов */
 function fgStepAccounts(){
-  fgShow("Аккаунты на почте", FG.accounts.length + " аккаунт(а) на " + maskMail(FG.mail));
+  if (!FG.accounts.length) { fgStepRegister(); return; }
+  fgShow(T("pickTitle"), FG.accounts.length + T("accOn") + maskMail(FG.mail));
   const b = $("fgBody"); b.replaceChildren();
-  if (!FG.accounts.length) { b.append(el("div", "blank", "Аккаунтов нет.")); return; }
   for (const a of FG.accounts) {
-    const row = el("div", "item"); row.style.padding = "9px 2px";
-    row.append(ava(a, 44));
+    const row = el("button", "item"); row.style.padding = "9px 2px"; row.style.borderRadius = "14px";
+    row.append(ava(a, 46));
     const mid = el("div", "grow");
     const t1 = el("div", "t1 ell"); t1.append(el("span", "ell", a.name || a.nick)); if (a.verified) t1.append(tick());
     mid.append(t1);
     mid.append(el("div", "t2 mono ell", "@" + a.nick));
     row.append(mid);
-    const login = el("button", "pill on", "Войти");
-    login.onclick = () => fgDo(a, "login", null, login);
-    const reset = el("button", "pill", "Сброс");
-    reset.onclick = () => fgStepNewPass(a);
-    row.append(login, reset);
+    row.onclick = () => fgDo(a, row);
     b.append(row);
+  }
+  if (FG.accounts.length < 4) {
+    const add = el("button", "ghost", T("newAcc")); add.style.marginTop = "10px";
+    add.onclick = fgStepRegister;
+    b.append(add);
   }
 }
 
-/* шаг 4: новый пароль */
-function fgStepNewPass(a){
-  fgShow("Новый пароль", "Для @" + a.nick);
+/* регистрация нового аккаунта на эту почту */
+function fgStepRegister(){
+  fgShow(T("regTitle"), T("regOn") + maskMail(FG.mail));
   const b = $("fgBody"); b.replaceChildren();
-  const p1 = passField("новый пароль", "new-password"); b.append(p1.box);
-  const p2 = passField("ещё раз", "new-password"); b.append(p2.box);
+  const b1 = el("div", "inp"); const nm = document.createElement("input"); nm.placeholder = T("namePh"); nm.maxLength = 32; b1.append(nm); b.append(b1);
+  const b2 = el("div", "inp"); b2.append(el("span", "pre", "@"));
+  const nk = document.createElement("input"); nk.placeholder = T("nickPh"); nk.maxLength = 20; nk.autocapitalize = "none";
+  b2.append(nk); b.append(b2);
   const err = el("div", "note"); b.append(err);
-  const ok = el("button", "cta", "Сохранить и войти");
+  const ok = el("button", "cta", T("createGo"));
   ok.onclick = async () => {
-    if (p1.input.value.length < 6) { err.textContent = "Пароль короче 6 символов."; return; }
-    if (p1.input.value !== p2.input.value) { err.textContent = "Пароли не совпадают."; return; }
-    fgDo(a, "reset", p1.input.value, ok, err);
+    err.textContent = "";
+    const nick = nk.value.trim().replace(/^@/, ""), low = nick.toLowerCase();
+    if (!/^[a-z0-9_]{3,20}$/.test(low)) { err.textContent = T("nickRule"); return; }
+    ok.disabled = true;
+    try {
+      const r = await callMailConfirm({ mail: FG.mail, code: FG.code, action: "register", nick, name: nm.value.trim() || nick });
+      const token = r.data && r.data.token;
+      if (!token) throw new Error("Токен не получен");
+      $("forgot").classList.add("hide");
+      $("splash").classList.remove("hide");
+      await signInWithCustomToken(auth, token);
+    } catch (e) { err.textContent = fbErr(e); ok.disabled = false; }
   };
   b.append(ok);
-  const back = el("button", "ghost", "К списку"); back.style.marginTop = "8px";
-  back.onclick = fgStepAccounts; b.append(back);
+  if (FG.accounts.length) {
+    const back = el("button", "ghost", T("toList")); back.style.marginTop = "8px";
+    back.onclick = fgStepAccounts; b.append(back);
+  }
+  setTimeout(() => nm.focus(), 100);
 }
 
-/* выполнить login/reset и войти по токену */
-async function fgDo(a, action, newPassword, btn, errBox){
+
+
+/* вход по токену */
+async function fgDo(a, btn){
   if (btn) btn.disabled = true;
   try {
-    const r = await callMailConfirm({ mail: FG.mail, code: FG.code, action, uid: a.uid, newPassword });
+    const r = await callMailConfirm({ mail: FG.mail, code: FG.code, action: "login", uid: a.uid });
     const token = r.data && r.data.token;
     if (!token) throw new Error("Токен не получен");
     $("forgot").classList.add("hide");
     $("splash").classList.remove("hide");
     await signInWithCustomToken(auth, token);
-    if (action === "reset") toast("Пароль изменён");
   } catch (e) {
-    if (errBox) errBox.textContent = fbErr(e);
-    else toast(fbErr(e));
+    toast(fbErr(e));
     if (btn) btn.disabled = false;
     $("splash").classList.add("hide");
-    if ($("forgot").classList.contains("hide")) $("forgot").classList.remove("hide");
+    $("forgot").classList.remove("hide");
   }
 }
 
-$("btnForgot").onclick = () => fgStepMail();
 
-/* ============ ВЫБОР АККАУНТА ПРИ ВХОДЕ ПО ПОЧТЕ ============ */
-function pickAccountScreen(matched, pass){
-  fgShow("Выберите аккаунт", "Пароль подходит к нескольким аккаунтам.");
-  const b = $("fgBody"); b.replaceChildren();
-  for (const a of matched) {
-    const row = el("button", "item"); row.style.padding = "9px 2px";
-    row.append(ava(a, 44));
-    const mid = el("div", "grow");
-    const t1 = el("div", "t1 ell"); t1.append(el("span", "ell", a.name || a.nick)); if (a.verified) t1.append(tick());
-    mid.append(t1);
-    mid.append(el("div", "t2 mono ell", "@" + a.nick));
-    row.append(mid);
-    row.onclick = async () => {
-      row.disabled = true;
-      try {
-        busy = true; awaitCode = true;
-        await signInWithEmailAndPassword(auth, a.authMail, pass);
-        busy = false;
-        $("forgot").classList.add("hide");
-        await gateStart(a);
-      } catch (e) { busy = false; awaitCode = false; toast(say(e)); row.disabled = false; }
-    };
-    b.append(row);
-  }
-}
 
-let gateRestored = false;
 onAuthStateChanged(auth, async u => {
-  if (busy || awaitCode) return;
-  // после перезагрузки WebView: если ждали код — вернуть экран кода, не пускать внутрь
-  if (!gateRestored && u) {
-    const g = restoreGate();
-    if (g === true) {
-      gateRestored = true;
-      $("splash").classList.add("hide");
-      showGate(pendingUser.mail);
-      return;
-    }
-    if (g === "expired") {
-      gateRestored = true;
-      try { await signOut(auth); } catch (_) {}
-      $("splash").classList.add("hide");
-      $("auth").classList.remove("hide");
-      $("note").textContent = "Код истёк. Войдите заново.";
-      return;
-    }
-  }
+  if (busy) return;
   $("splash").classList.add("hide");
   if (!u) { stopAll(); return; }
   try {
     const s = await getDoc(U(u.uid));
-    if (!s.exists()) { await signOut(auth); setMode("up"); $("note").textContent = "Профиль не найден."; return; }
+    if (!s.exists()) { await signOut(auth); $("note").textContent = "Профиль не найден."; return; }
     if (s.data().banned) { await signOut(auth); $("note").textContent = "Этот аккаунт заблокирован."; return; }
     start(s.data());
   } catch (e) { stopAll(); }
@@ -1122,14 +1042,13 @@ function stopAll(){
   me = null; active = null; chats = []; reqs = []; invites = []; badgeCat = [];
   friends = new Set(); blocks = new Set(); cache = new Map();
   isAdmin = false; kTaps = 0;
-  awaitCode = false; pendingUser = null; codeBox = null; clearGate();
-  hideGate();
+
   $("chat").classList.remove("on");
   $("app").classList.add("hide");
   $("splash").classList.add("hide");
   $("forgot").classList.add("hide");
   $("auth").classList.remove("hide");
-  $("go").disabled = false; $("iPass").value = "";
+  $("go").disabled = false;
 }
 
 async function start(p){
@@ -1192,7 +1111,10 @@ async function start(p){
   }, e => toast("Звонки: " + say(e))));
 
   syncBotsTab();
-  go("chats");
+  if (me.lang) { applyLang(me.lang, true); go("chats"); }
+  else {
+    langPickScreen(() => { $("app").classList.remove("hide"); go("chats"); });
+  }
 }
 
 function badgeCount(){
@@ -1229,8 +1151,8 @@ function drawChats(){
   const vis = chats.filter(c => c.type === "group" || !blocks.has(peerOf(c)));
   if (!vis.length) {
     const b = el("div", "blank");
-    b.append(el("b", null, "Пока пусто"));
-    b.append(document.createTextNode("Найдите человека по нику или соберите группу."));
+    b.append(el("b", null, T("emptyTitle")));
+    b.append(document.createTextNode(T("emptyText")));
     box.append(b); return;
   }
   for (const c of vis) {
@@ -1244,8 +1166,8 @@ function drawChats(){
     t1.append(miniBadges(f.badges, true));
     mid.append(t1);
     const last = c.lastText
-      ? (c.lastFrom === me.uid ? "Вы: " + c.lastText : c.lastText)
-      : (c.type === "group" ? (c.members || []).length + " участн." : "Нет сообщений");
+      ? (c.lastFrom === me.uid ? T("you") + c.lastText : c.lastText)
+      : (c.type === "group" ? (c.members || []).length + T("membersShort") : T("noMsgs"));
     mid.append(el("div", "t2 ell", last));
     row.append(mid);
     row.append(el("div", "time", shortT(c.lastAt)));
@@ -1268,7 +1190,7 @@ async function search(t){
   const found = s.docs.map(d => d.data()).filter(u => u.uid !== me.uid && !u.banned);
   found.forEach(u => cache.set(u.uid, u));
   box.replaceChildren();
-  box.append(el("div", "cap", "Люди"));
+  box.append(el("div", "cap", T("tabPeople")));
   if (!found.length) { box.append(el("div", "blank", "Никого с таким ником нет.")); return; }
   for (const u of found) {
     const row = el("button", "item");
@@ -1290,22 +1212,22 @@ function drawPeople(){
   const box = $("listPeople"); const keep = box.scrollTop; box.replaceChildren();
 
   if (invites.length) {
-    box.append(el("div", "cap", "Приглашения в группы"));
+    box.append(el("div", "cap", T("capInv")));
     for (const v of invites) {
       const row = el("div", "item");
       row.append(ava({ uid: v.id, name: v.title || "Группа", group: true }, 46));
       const mid = el("div", "grow");
       mid.append(el("div", "t1 ell", v.title || "Группа"));
-      mid.append(el("div", "t2 ell", "Приглашение в группу"));
+      mid.append(el("div", "t2 ell", T("invText")));
       row.append(mid);
-      const y = el("button", "pill on", "Войти"); y.onclick = () => joinGroup(v);
+      const y = el("button", "pill on", T("enter")); y.onclick = () => joinGroup(v);
       const n = el("button", "pill", "Нет"); n.onclick = () => deleteDoc(doc(db, "users", me.uid, "invites", v.id)).catch(e => toast(say(e)));
       row.append(y, n); box.append(row);
     }
   }
 
   if (reqs.length) {
-    box.append(el("div", "cap", "Заявки в друзья"));
+    box.append(el("div", "cap", T("capReq")));
     for (const r of reqs) {
       const p = cache.get(r.uid) || { uid: r.uid, nick: "…" };
       const row = el("div", "item");
@@ -1314,15 +1236,15 @@ function drawPeople(){
       mid.append(el("div", "t1 ell", p.name || p.nick));
       mid.append(el("div", "t2 mono ell", "@" + p.nick));
       row.append(mid);
-      const y = el("button", "pill on", "Принять"); y.onclick = () => accept(p);
+      const y = el("button", "pill on", T("accept")); y.onclick = () => accept(p);
       const n = el("button", "pill", "Нет"); n.onclick = () => deleteDoc(doc(db, "users", me.uid, "requests", p.uid)).catch(e => toast(say(e)));
       row.append(y, n); box.append(row);
     }
   }
 
   const fr = [...friends];
-  box.append(el("div", "cap", fr.length ? "Друзья · " + fr.length : "Друзья"));
-  if (!fr.length) box.append(el("div", "blank", "Друзей пока нет. Найдите человека по нику и отправьте заявку."));
+  box.append(el("div", "cap", fr.length ? T("capFriends") + " · " + fr.length : T("capFriends")));
+  if (!fr.length) box.append(el("div", "blank", T("noFriends")));
   for (const uid of fr) {
     const p = cache.get(uid);
     if (!p) { profile(uid).then(() => { if (tab === "people") drawPeople(); }); continue; }
@@ -1341,7 +1263,7 @@ function drawPeople(){
   }
 
   if (blocks.size) {
-    box.append(el("div", "cap", "Заблокированные"));
+    box.append(el("div", "cap", T("capBlocked")));
     for (const uid of blocks) {
       const p = cache.get(uid);
       if (!p) { profile(uid).then(() => { if (tab === "people") drawPeople(); }); continue; }
@@ -1351,7 +1273,7 @@ function drawPeople(){
       mid.append(el("div", "t1 ell", p.name || p.nick));
       mid.append(el("div", "t2 mono ell", "@" + p.nick));
       row.append(mid);
-      const b = el("button", "pill", "Разблокировать");
+      const b = el("button", "pill", T("unblock"));
       b.onclick = () => deleteDoc(doc(db, "users", me.uid, "blocked", uid)).catch(e => toast(say(e)));
       row.append(b); box.append(row);
     }
@@ -1359,17 +1281,17 @@ function drawPeople(){
   box.scrollTop = keep;
 }
 
-async function askFriend(p){ try { await setDoc(doc(db, "users", p.uid, "requests", me.uid), { from: me.uid, at: serverTimestamp() }); toast("Заявка отправлена"); } catch (e) { toast(say(e)); } }
+async function askFriend(p){ try { await setDoc(doc(db, "users", p.uid, "requests", me.uid), { from: me.uid, at: serverTimestamp() }); toast(T("appSent")); } catch (e) { toast(say(e)); } }
 async function accept(p){
   try {
     await setDoc(doc(db, "users", p.uid, "friends", me.uid), { uid: me.uid, at: serverTimestamp() });
     await setDoc(doc(db, "users", me.uid, "friends", p.uid), { uid: p.uid, at: serverTimestamp() });
     await deleteDoc(doc(db, "users", me.uid, "requests", p.uid));
-    toast("Теперь вы друзья");
+    toast(T("nowFriends"));
   } catch (e) { toast(say(e)); }
 }
 async function unfriend(uid){
-  try { await deleteDoc(doc(db, "users", me.uid, "friends", uid)); await deleteDoc(doc(db, "users", uid, "friends", me.uid)); toast("Удалён из друзей"); }
+  try { await deleteDoc(doc(db, "users", me.uid, "friends", uid)); await deleteDoc(doc(db, "users", uid, "friends", me.uid)); toast(T("unfriended")); }
   catch (e) { toast(say(e)); }
 }
 async function block(uid){
@@ -1378,7 +1300,7 @@ async function block(uid){
     await deleteDoc(doc(db, "users", me.uid, "friends", uid)).catch(() => {});
     await deleteDoc(doc(db, "users", uid, "friends", me.uid)).catch(() => {});
     await deleteDoc(doc(db, "users", me.uid, "requests", uid)).catch(() => {});
-    toast("Заблокирован"); closeChat();
+    toast(T("blockedT")); closeChat();
   } catch (e) { toast(say(e)); }
 }
 
@@ -1387,12 +1309,12 @@ $("btnPlus").onclick = () => {
   const b = $("sheetBody"); b.replaceChildren();
   const f = el("button", null);
   f.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EDEFF4" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.4"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M18 8v6M15 11h6"/></svg>';
-  f.append(el("span", null, "Добавить друга"));
+  f.append(el("span", null, T("addFriend")));
   f.onclick = () => { hideSheet(); addFriendDialog(); };
   b.append(f);
   const g = el("button", null);
   g.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EDEFF4" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="9" r="2.6"/><circle cx="16" cy="9" r="2.6"/><path d="M3 19a5 5 0 0 1 10 0M13.5 14.6A5 5 0 0 1 21 19"/></svg>';
-  g.append(el("span", null, "Создать группу"));
+  g.append(el("span", null, T("newGroup")));
   g.onclick = () => { hideSheet(); newGroupDialog(); };
   b.append(g);
 
@@ -1486,7 +1408,7 @@ function newGroupDialog(){
       for (const uid of chosen) {
         await setDoc(doc(db, "users", uid, "invites", ref.id), { chat: ref.id, title, from: me.uid, at: serverTimestamp() }).catch(() => {});
       }
-      closeDlg(); toast("Группа создана");
+      closeDlg(); toast(T("grpCreated"));
     } catch (e) { err.textContent = say(e); ok.disabled = false; }
   };
   row.append(no, ok); d.append(row);
@@ -1497,7 +1419,7 @@ async function joinGroup(v){
   try {
     await updateDoc(C(v.id), { members: arrayUnion(me.uid), ["info." + me.uid]: { nick: me.nick, name: me.name || me.nick } });
     await deleteDoc(doc(db, "users", me.uid, "invites", v.id));
-    toast("Вы в группе");
+    toast(T("inGroup"));
   } catch (e) { toast(say(e)); }
 }
 
@@ -1564,7 +1486,7 @@ function head(){
   n.replaceChildren(el("span", "ell", f.name || f.nick));
   if (f.verified) n.append(tick());
   n.append(miniBadges(f.badges, true));
-  $("peerSub").textContent = c.type === "group" ? (c.members || []).length + " участников" : "@" + (f.nick || "");
+  $("peerSub").textContent = c.type === "group" ? (c.members || []).length + T("members") : "@" + (f.nick || "");
   const grp = c.type === "group";
   $("callA").classList.toggle("hide", grp);
   $("callV").classList.toggle("hide", grp);
@@ -1618,15 +1540,15 @@ function gate(){
   const p = cache.get(peerOf(c)) || {};
   if (blocks.has(p.uid)) {
     comp.classList.add("hide"); lock.classList.remove("hide");
-    lock.append(document.createTextNode("Вы заблокировали @" + p.nick));
-    const b = el("button", "ghost", "Разблокировать");
+    lock.append(document.createTextNode(T("lockBlocked") + p.nick));
+    const b = el("button", "ghost", T("unblock"));
     b.onclick = () => deleteDoc(doc(db, "users", me.uid, "blocked", p.uid)).then(gate);
     lock.append(b); return;
   }
   if (p.whoCanWrite === "friends" && !friends.has(p.uid)) {
     comp.classList.add("hide"); lock.classList.remove("hide");
-    lock.append(document.createTextNode("@" + p.nick + " принимает сообщения только от друзей"));
-    const b = el("button", "ghost", "Отправить заявку в друзья"); b.onclick = () => askFriend(p);
+    lock.append(document.createTextNode("@" + p.nick + T("lockFriends")));
+    const b = el("button", "ghost", T("sendReq")); b.onclick = () => askFriend(p);
     lock.append(b); return;
   }
   comp.classList.remove("hide"); lock.classList.add("hide");
@@ -1667,19 +1589,19 @@ function drawMsgs(list){
 
 function msgMenu(m, mine){
   const b = $("sheetBody"); b.replaceChildren();
-  const d = el("button", "danger", mine ? "Удалить сообщение" : "Удалить (модерация)");
+  const d = el("button", "danger", mine ? T("mdelMsg") : T("mdelMod"));
   d.onclick = async () => {
     hideSheet();
-    try { await deleteDoc(doc(db, "chats", active.id, "messages", m.id)); toast("Удалено"); }
+    try { await deleteDoc(doc(db, "chats", active.id, "messages", m.id)); toast(T("deleted")); }
     catch (e) { toast(say(e)); }
   };
   b.append(d);
   if (!mine) {
-    const p = el("button", null, "Открыть профиль");
+    const p = el("button", null, T("mopen"));
     p.onclick = () => { hideSheet(); openProfile(m.from); };
     b.append(p);
   }
-  const c = el("button", null, "Отмена"); c.onclick = hideSheet; b.append(c);
+  const c = el("button", null, T("cancel")); c.onclick = hideSheet; b.append(c);
   showSheet();
 }
 
@@ -1702,10 +1624,10 @@ async function post(img){
   if (img) body.img = img;
   try {
     await addDoc(collection(db, "chats", active.id, "messages"), body);
-    await updateDoc(C(active.id), { lastText: (img ? "Фото" : text).slice(0, 80), lastFrom: me.uid, lastAt: serverTimestamp() });
+    await updateDoc(C(active.id), { lastText: (img ? T("photo") : text).slice(0, 80), lastFrom: me.uid, lastAt: serverTimestamp() });
   } catch (e) {
     if (!img) { ta.value = text; $("send").disabled = false; }
-    toast(e.code === "permission-denied" ? "Не доставлено: человек ограничил, кто может ему писать." : say(e));
+    toast(e.code === "permission-denied" ? T("notDelivered") : say(e));
   }
 }
 $("light").onclick = () => $("light").classList.remove("on");
@@ -1746,24 +1668,24 @@ async function openProfile(uid){
 
   if (uid !== me.uid) {
     const act = el("div", "pf-act");
-    const msg = el("button", "prime", "Написать");
+    const msg = el("button", "prime", T("write"));
     msg.onclick = () => { closeProfile(); openDM(p); };
     act.append(msg);
     if (friends.has(uid)) {
-      const un = el("button", null, "Убрать из друзей");
+      const un = el("button", null, T("mdelF"));
       un.onclick = () => { unfriend(uid); closeProfile(); };
       act.append(un);
     } else if (!blocks.has(uid)) {
-      const af = el("button", null, "В друзья");
+      const af = el("button", null, T("toFriends"));
       af.onclick = () => { askFriend(p); closeProfile(); };
       act.append(af);
     }
     if (blocks.has(uid)) {
-      const ub = el("button", null, "Разблокировать");
+      const ub = el("button", null, T("unblock"));
       ub.onclick = () => { deleteDoc(doc(db, "users", me.uid, "blocked", uid)); closeProfile(); };
       act.append(ub);
     } else {
-      const bl = el("button", "red", "Заблокировать");
+      const bl = el("button", "red", T("block"));
       bl.onclick = () => { block(uid); closeProfile(); };
       act.append(bl);
     }
@@ -1828,7 +1750,7 @@ async function openGroupProfile(c){
     const mid = el("div", "grow");
     const t1 = el("div", "t1 ell");
     t1.append(el("span", "ell", p.name || p.nick));
-    if (uid === c.owner) { const own = el("span", "rolechip"); own.style.background = "rgba(245,180,65,.16)"; own.style.color = "var(--gold)"; own.textContent = "владелец"; t1.append(own); }
+    if (uid === c.owner) { const own = el("span", "rolechip"); own.style.background = "rgba(245,180,65,.16)"; own.style.color = "var(--gold)"; own.textContent = T("owner"); t1.append(own); }
     else {
       const rid = (c.memberRoles || {})[uid];
       const r = activeRoles.find(x => x.id === rid);
@@ -1838,23 +1760,23 @@ async function openGroupProfile(c){
     mid.append(el("div", "t2 mono ell", "@" + p.nick));
     row.append(mid);
     if ((owner || perms.roles) && uid !== c.owner && uid !== me.uid) {
-      const rl = el("button", "pill", "Роль"); rl.onclick = () => assignRole(c, uid); row.append(rl);
+      const rl = el("button", "pill", T("role")); rl.onclick = () => assignRole(c, uid); row.append(rl);
     }
     if ((owner || perms.kick) && uid !== c.owner && uid !== me.uid) {
-      const kk = el("button", "pill red", "Убрать"); kk.onclick = () => kick(c, uid); row.append(kk);
+      const kk = el("button", "pill red", T("kickT")); kk.onclick = () => kick(c, uid); row.append(kk);
     }
     sec.append(row);
   }
   sp.append(sec);
 
   const act = el("div", "pf-act");
-  if (owner || perms.invite) { const inv = el("button", "prime", "Пригласить"); inv.onclick = () => { closeProfile(); inviteMore(c); }; act.append(inv); }
-  if (owner || perms.edit) { const ed = el("button", null, "Изменить"); ed.onclick = () => editGroup(c); act.append(ed); }
-  if (owner || perms.roles) { const rm = el("button", null, "Роли"); rm.onclick = () => rolesManager(c); act.append(rm); }
-  const leave = el("button", "red", "Выйти");
-  leave.onclick = async () => { try { await updateDoc(C(c.id), { members: arrayRemove(me.uid) }); closeProfile(); closeChat(); toast("Вы вышли"); } catch (e) { toast(say(e)); } };
+  if (owner || perms.invite) { const inv = el("button", "prime", T("invite")); inv.onclick = () => { closeProfile(); inviteMore(c); }; act.append(inv); }
+  if (owner || perms.edit) { const ed = el("button", null, T("editG")); ed.onclick = () => editGroup(c); act.append(ed); }
+  if (owner || perms.roles) { const rm = el("button", null, T("rolesB")); rm.onclick = () => rolesManager(c); act.append(rm); }
+  const leave = el("button", "red", T("leave"));
+  leave.onclick = async () => { try { await updateDoc(C(c.id), { members: arrayRemove(me.uid) }); closeProfile(); closeChat(); toast(T("youLeft")); } catch (e) { toast(say(e)); } };
   act.append(leave);
-  if (owner) { const del = el("button", "red", "Удалить группу"); del.onclick = () => { closeProfile(); openChat(c); setTimeout(() => wipe("Удалить группу?", "Все сообщения пропадут у всех участников."), 200); }; act.append(del); }
+  if (owner) { const del = el("button", "red", T("mdelG")); del.onclick = () => { closeProfile(); openChat(c); setTimeout(() => wipe("Удалить группу?", "Все сообщения пропадут у всех участников."), 200); }; act.append(del); }
   sp.append(act);
 
   if (isAdmin) {
@@ -1913,7 +1835,7 @@ function editGroup(c){
   wrap.append(av);
   const ch = el("button", "pill", "Сменить аватар"); ch.style.marginTop = "10px";
   const pg = $("pickGrp");
-  const doPick = () => { pg.onchange = async e => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (!f) return; try { const photo = await shrink(f, 320, 220000); await updateDoc(C(c.id), { photo }); c.photo = photo; const na = ava({ uid: c.id, name: c.title, group: true, photo }, 84); av.replaceChildren(); while (na.firstChild) av.append(na.firstChild); av.className = na.className; toast("Аватар обновлён"); } catch (err) { toast(say(err)); } }; pg.click(); };
+  const doPick = () => { pg.onchange = async e => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (!f) return; try { const photo = await shrink(f, 320, 220000); await updateDoc(C(c.id), { photo }); c.photo = photo; const na = ava({ uid: c.id, name: c.title, group: true, photo }, 84); av.replaceChildren(); while (na.firstChild) av.append(na.firstChild); av.className = na.className; toast(T("avaUpd")); } catch (err) { toast(say(err)); } }; pg.click(); };
   av.onclick = doPick; ch.onclick = doPick;
   wrap.append(ch); d.append(wrap);
 
@@ -1926,7 +1848,7 @@ function editGroup(c){
   ok.onclick = async () => {
     const title = ti.value.trim(); if (!title) { err.textContent = "Название не может быть пустым."; return; }
     ok.disabled = true;
-    try { await updateDoc(C(c.id), { title, bio: bi.value.trim() }); closeDlg(); toast("Сохранено"); }
+    try { await updateDoc(C(c.id), { title, bio: bi.value.trim() }); closeDlg(); toast(T("saved")); }
     catch (e) { err.textContent = say(e); ok.disabled = false; }
   };
   row.append(no, ok); d.append(row);
@@ -2163,20 +2085,20 @@ $("menu").onclick = () => {
   if (!active) return;
   const c = active.chat, b = $("sheetBody"); b.replaceChildren();
   if (c.type === "group") {
-    const op = el("button", null, "Открыть профиль группы"); op.onclick = () => { hideSheet(); openGroupProfile(c); }; b.append(op);
+    const op = el("button", null, T("mopenG")); op.onclick = () => { hideSheet(); openGroupProfile(c); }; b.append(op);
     const perms = myPerms();
-    if (c.owner === me.uid || perms.invite) { const a = el("button", null, "Добавить участника"); a.onclick = () => { hideSheet(); inviteMore(c); }; b.append(a); }
-    const l = el("button", "danger", "Выйти из группы");
-    l.onclick = async () => { hideSheet(); try { await updateDoc(C(c.id), { members: arrayRemove(me.uid) }); closeChat(); toast("Вы вышли"); } catch (e) { toast(say(e)); } };
+    if (c.owner === me.uid || perms.invite) { const a = el("button", null, T("maddM")); a.onclick = () => { hideSheet(); inviteMore(c); }; b.append(a); }
+    const l = el("button", "danger", T("mleave"));
+    l.onclick = async () => { hideSheet(); try { await updateDoc(C(c.id), { members: arrayRemove(me.uid) }); closeChat(); toast(T("youLeft")); } catch (e) { toast(say(e)); } };
     b.append(l);
-    if (c.owner === me.uid) { const d = el("button", "danger", "Удалить группу"); d.onclick = () => { hideSheet(); wipe("Удалить группу?", "Все сообщения пропадут у всех участников."); }; b.append(d); }
+    if (c.owner === me.uid) { const d = el("button", "danger", T("mdelG")); d.onclick = () => { hideSheet(); wipe("Удалить группу?", "Все сообщения пропадут у всех участников."); }; b.append(d); }
   } else {
     const p = cache.get(peerOf(c)) || {};
-    const op = el("button", null, "Открыть профиль"); op.onclick = () => { hideSheet(); openProfile(p.uid); }; b.append(op);
-    if (!friends.has(p.uid) && !blocks.has(p.uid)) { const x = el("button", null, "Добавить в друзья"); x.onclick = () => { hideSheet(); askFriend(p); }; b.append(x); }
-    if (friends.has(p.uid)) { const x = el("button", null, "Удалить из друзей"); x.onclick = () => { hideSheet(); unfriend(p.uid); }; b.append(x); }
-    if (!blocks.has(p.uid)) { const x = el("button", "danger", "Заблокировать @" + p.nick); x.onclick = () => { hideSheet(); block(p.uid); }; b.append(x); }
-    const d = el("button", "danger", "Удалить чат у обоих"); d.onclick = () => { hideSheet(); wipe("Удалить чат?", "Переписка пропадёт у вас обоих."); }; b.append(d);
+    const op = el("button", null, T("mopen")); op.onclick = () => { hideSheet(); openProfile(p.uid); }; b.append(op);
+    if (!friends.has(p.uid) && !blocks.has(p.uid)) { const x = el("button", null, T("maddF")); x.onclick = () => { hideSheet(); askFriend(p); }; b.append(x); }
+    if (friends.has(p.uid)) { const x = el("button", null, T("mdelF")); x.onclick = () => { hideSheet(); unfriend(p.uid); }; b.append(x); }
+    if (!blocks.has(p.uid)) { const x = el("button", "danger", T("mblock") + p.nick); x.onclick = () => { hideSheet(); block(p.uid); }; b.append(x); }
+    const d = el("button", "danger", T("mdelChat")); d.onclick = () => { hideSheet(); wipe("Удалить чат?", "Переписка пропадёт у вас обоих."); }; b.append(d);
   }
   showSheet();
 };
@@ -2196,7 +2118,7 @@ function wipe(title, text){
       const rs = await getDocs(collection(db, "chats", id, "roles"));
       for (const d of rs.docs) await deleteDoc(d.ref).catch(() => {});
       await deleteDoc(C(id));
-      closeChat(); closeDlg(); toast("Удалено");
+      closeChat(); closeDlg(); toast(T("deleted"));
     } catch (e) { toast(say(e)); }
   }, true);
 }
@@ -2219,7 +2141,7 @@ function drawMe(){
 
   const myBadges = (me.badges || []).map(id => badgeCat.find(b => b.id === id)).filter(Boolean);
   if (myBadges.length) {
-    box.append(el("div", "cap", "Мои значки"));
+    box.append(el("div", "cap", T("myBadges")));
     const card = el("div", "card"); const row = el("div", "pf-badges"); row.style.padding = "14px";
     for (const b of myBadges) {
       const cell = el("div", "pf-badge");
@@ -2230,54 +2152,67 @@ function drawMe(){
   }
 
   const c1 = el("div", "card");
-  const l1 = el("div", "line"); l1.append(el("div", "k", "Имя"));
+  const l1 = el("div", "line"); l1.append(el("div", "k", T("fName")));
   const ni = document.createElement("input"); ni.value = me.name || ""; ni.maxLength = 32; ni.placeholder = "Ваше имя"; ni.style.textAlign = "right";
-  ni.onblur = async () => { const v = ni.value.trim().slice(0, 32); if (!v || v === me.name) { ni.value = me.name || ""; return; } try { await updateDoc(U(me.uid), { name: v }); toast("Имя обновлено"); } catch (e) { toast(say(e)); } };
+  ni.onblur = async () => { const v = ni.value.trim().slice(0, 32); if (!v || v === me.name) { ni.value = me.name || ""; return; } try { await updateDoc(U(me.uid), { name: v }); toast(T("nameUpd")); } catch (e) { toast(say(e)); } };
   l1.append(ni); c1.append(l1);
-  const lb = el("div", "line"); lb.append(el("div", "k", "О себе"));
-  const bi = document.createElement("input"); bi.value = me.bio || ""; bi.maxLength = 120; bi.placeholder = "Пара слов"; bi.style.textAlign = "right";
-  bi.onblur = async () => { const v = bi.value.trim().slice(0, 120); if (v === (me.bio || "")) return; try { await updateDoc(U(me.uid), { bio: v }); toast("Обновлено"); } catch (e) { toast(say(e)); } };
+  const lb = el("div", "line"); lb.append(el("div", "k", T("fAbout")));
+  const bi = document.createElement("input"); bi.value = me.bio || ""; bi.maxLength = 120; bi.placeholder = T("fAboutPh"); bi.style.textAlign = "right";
+  bi.onblur = async () => { const v = bi.value.trim().slice(0, 120); if (v === (me.bio || "")) return; try { await updateDoc(U(me.uid), { bio: v }); toast(T("updated")); } catch (e) { toast(say(e)); } };
   lb.append(bi); c1.append(lb);
-  const l2 = el("div", "line"); l2.append(el("div", "k", "Ник")); const nk = el("div", "grow mono", "@" + me.nick); nk.style.textAlign = "right"; l2.append(nk); c1.append(l2);
+  const l2 = el("div", "line"); l2.append(el("div", "k", T("fNick"))); const nk = el("div", "grow mono", "@" + me.nick); nk.style.textAlign = "right"; l2.append(nk); c1.append(l2);
   box.append(c1);
 
   const c2 = el("div", "card");
-  const l3 = el("div", "line"); const mm = el("div", "grow"); mm.append(el("div", "k", "Почта")); mm.append(el("div", "v ell", me.mail || "")); l3.append(mm);
-  const ch = el("button", "pill", "Изменить"); ch.onclick = changeMail; l3.append(ch); c2.append(l3);
-  const lp = el("div", "line"); const pp = el("div", "grow"); pp.append(el("div", "k", "Пароль")); pp.append(el("div", "v", "••••••••")); lp.append(pp);
-  const cp = el("button", "pill", "Сменить"); cp.onclick = changePass; lp.append(cp); c2.append(lp);
-  const l5 = el("div", "line"); const vv = el("div", "grow"); vv.append(el("div", "k", "Галочка")); vv.append(el("div", "v", me.verified ? "Подтверждён" : (me.verifyAsked ? "Заявка на рассмотрении" : "Нет"))); l5.append(vv);
-  if (!me.verified && !me.verifyAsked) { const a = el("button", "pill", "Подать заявку"); a.onclick = async () => { try { await updateDoc(U(me.uid), { verifyAsked: true, verifyAt: serverTimestamp() }); toast("Заявка отправлена"); } catch (e) { toast(say(e)); } }; l5.append(a); }
+  const l3 = el("div", "line"); const mm = el("div", "grow"); mm.append(el("div", "k", T("fMail"))); mm.append(el("div", "v ell", me.mail || "")); l3.append(mm);
+  const ch = el("button", "pill", T("change")); ch.onclick = changeMail; l3.append(ch); c2.append(l3);
+  const l5 = el("div", "line"); const vv = el("div", "grow"); vv.append(el("div", "k", T("fTick"))); vv.append(el("div", "v", me.verified ? T("tickYes") : (me.verifyAsked ? T("tickAsk") : T("tickNo")))); l5.append(vv);
+  if (!me.verified && !me.verifyAsked) { const a = el("button", "pill", T("apply")); a.onclick = async () => { try { await updateDoc(U(me.uid), { verifyAsked: true, verifyAt: serverTimestamp() }); toast(T("appSent")); } catch (e) { toast(say(e)); } }; l5.append(a); }
   c2.append(l5); box.append(c2);
 
-  box.append(el("div", "cap", "Приватность"));
+  box.append(el("div", "cap", T("capLang")));
+  const cl = el("div", "card");
+  const ll = el("div", "line");
+  for (const [code, label] of LANGS) {
+    const pl = el("button", "pill" + (lang === code ? " on" : ""), label);
+    pl.style.flex = "1";
+    pl.onclick = async () => {
+      applyLang(code, true);
+      try { await updateDoc(U(me.uid), { lang: code }); } catch (e) { toast(say(e)); }
+      drawMe(); toast("OK");
+    };
+    ll.append(pl);
+  }
+  cl.append(ll); box.append(cl);
+
+  box.append(el("div", "cap", T("capPriv")));
   const c3 = el("div", "card");
-  const l6 = el("div", "line"); l6.append(el("div", "k grow", "Кто может мне писать и звонить")); c3.append(l6);
+  const l6 = el("div", "line"); l6.append(el("div", "k grow", T("whoWrites"))); c3.append(l6);
   const l7 = el("div", "line");
-  const all = el("button", "pill" + (me.whoCanWrite !== "friends" ? " on" : ""), "Все");
-  const fro = el("button", "pill" + (me.whoCanWrite === "friends" ? " on" : ""), "Только друзья");
+  const all = el("button", "pill" + (me.whoCanWrite !== "friends" ? " on" : ""), T("all"));
+  const fro = el("button", "pill" + (me.whoCanWrite === "friends" ? " on" : ""), T("onlyFriends"));
   all.style.flex = fro.style.flex = "1";
   all.onclick = () => updateDoc(U(me.uid), { whoCanWrite: "all" }).catch(e => toast(say(e)));
   fro.onclick = () => updateDoc(U(me.uid), { whoCanWrite: "friends" }).catch(e => toast(say(e)));
   l7.append(all, fro); c3.append(l7); box.append(c3);
 
   const out = el("div", "card");
-  const l8 = el("div", "line"); const ob = el("button", "grow danger", "Выйти из аккаунта"); ob.style.textAlign = "left";
+  const l8 = el("div", "line"); const ob = el("button", "grow danger", T("logout")); ob.style.textAlign = "left";
   ob.onclick = async () => { stopAll(); await signOut(auth); };
   l8.append(ob); out.append(l8); box.append(out);
 
   // приглашение в Bot Creator (если ещё не присоединился)
   if (!me.botJoined) {
-    box.append(el("div", "cap", "Разработчикам"));
+    box.append(el("div", "cap", T("capDev")));
     const bc = el("div", "card"); bc.style.padding = "16px";
     const h = el("div"); h.style.cssText = "font-size:19px;font-weight:700;font-family:Unbounded,sans-serif";
     h.textContent = "bot creator";
     bc.append(h);
-    bc.append(el("div", "k", "создание ботов"));
-    const j = el("button", "cta", "Присоединиться"); j.style.marginTop = "12px";
+    bc.append(el("div", "k", T("botSub")));
+    const j = el("button", "cta", T("join")); j.style.marginTop = "12px";
     j.onclick = async () => {
       j.disabled = true;
-      try { await updateDoc(U(me.uid), { botJoined: true }); toast("Добро пожаловать в Bot Creator"); }
+      try { await updateDoc(U(me.uid), { botJoined: true }); toast(T("joined")); }
       catch (e) { toast(say(e)); j.disabled = false; }
     };
     bc.append(j);
@@ -2295,7 +2230,7 @@ function drawMe(){
 $("pickAva").onchange = async e => {
   const f = e.target.files && e.target.files[0]; e.target.value = "";
   if (!f) return;
-  try { await updateDoc(U(me.uid), { photo: await shrink(f, 240, 200000) }); toast("Аватар обновлён"); }
+  try { await updateDoc(U(me.uid), { photo: await shrink(f, 240, 200000) }); toast(T("avaUpd")); }
   catch (err) { toast(say(err)); }
 };
 
@@ -2333,31 +2268,7 @@ function changeMail(){
   $("modal").classList.add("on");
 }
 
-function changePass(){
-  const d = $("dlg"); d.replaceChildren();
-  d.append(el("h3", null, "Сменить пароль"));
-  d.append(el("p", null, "Введите текущий пароль и новый — минимум 6 символов."));
-  const cur = passField("текущий пароль", "current-password"); d.append(cur.box);
-  const nw = passField("новый пароль", "new-password"); d.append(nw.box);
-  const rp = passField("новый пароль ещё раз", "new-password"); d.append(rp.box);
-  const err = el("div", "note"); d.append(err);
-  const row = el("div", "row"); const no = el("button", "ghost", "Отмена"); no.onclick = closeDlg;
-  const ok = el("button", "cta", "Сохранить");
-  ok.onclick = async () => {
-    err.textContent = "";
-    if (nw.input.value.length < 6) { err.textContent = "Новый пароль короче 6 символов."; return; }
-    if (nw.input.value !== rp.input.value) { err.textContent = "Новые пароли не совпадают."; return; }
-    ok.disabled = true;
-    try {
-      const u = auth.currentUser;
-      await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, cur.input.value));
-      await updatePassword(u, nw.input.value);
-      closeDlg(); toast("Пароль изменён");
-    } catch (e) { err.textContent = say(e); ok.disabled = false; }
-  };
-  row.append(no, ok); d.append(row);
-  $("modal").classList.add("on");
-}
+
 
 /* ============ АДМИНКА ============ */
 function askKey(){
@@ -2564,12 +2475,12 @@ function manageBadges(id, isGroup){
 /* ============ BOT CREATOR (\u0441\u043b\u043e\u0439 1) ============ */
 const BOT_LIMIT = 25;
 const RULE_TYPES = [
-  ["equals", "\u0422\u043e\u0447\u043d\u043e\u0435 \u0441\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0435"],
-  ["contains", "\u0421\u043e\u0434\u0435\u0440\u0436\u0438\u0442 \u0441\u043b\u043e\u0432\u043e"],
-  ["command", "\u041a\u043e\u043c\u0430\u043d\u0434\u0430 (/\u0447\u0442\u043e-\u0442\u043e)"],
-  ["all", "\u041d\u0430 \u043b\u044e\u0431\u043e\u0435 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435"]
+  ["equals", "tEq"],
+  ["contains", "tCon"],
+  ["command", "tCmd"],
+  ["all", "tAll"]
 ];
-const ruleTypeName = t => (RULE_TYPES.find(x => x[0] === t) || RULE_TYPES[0])[1];
+const ruleTypeName = t => T((RULE_TYPES.find(x => x[0] === t) || RULE_TYPES[0])[1]);
 
 /* показать/скрыть вкладку Боты */
 function syncBotsTab(){
@@ -2582,7 +2493,7 @@ function syncBotsTab(){
 /* экран вкладки Боты */
 async function drawBots(){
   const box = $("listBots"); box.replaceChildren();
-  box.append(el("div", "cap", "Мои боты"));
+  box.append(el("div", "cap", T("myBots")));
   const wrap = el("div"); box.append(wrap);
   wrap.append(el("div", "line", "Загружаю…"));
 
@@ -2595,8 +2506,8 @@ async function drawBots(){
   wrap.replaceChildren();
   if (!mine.length) {
     const b = el("div", "blank");
-    b.append(el("b", null, "Ботов пока нет"));
-    b.append(document.createTextNode("Создай первого — он будет отвечать по правилам круглосуточно."));
+    b.append(el("b", null, T("botsEmptyT")));
+    b.append(document.createTextNode(T("botsEmptyX")));
     wrap.append(b);
   } else {
     for (const bt of mine) {
@@ -2606,17 +2517,17 @@ async function drawBots(){
       m.append(el("div", "t1 ell", bt.name || bt.nick));
       m.append(el("div", "t2 mono ell", "@" + bt.nick));
       row.append(m);
-      row.append(el("div", "pill", "Настроить"));
+      row.append(el("div", "pill", T("cfg")));
       row.onclick = () => botEditor(bt);
       wrap.append(row);
     }
   }
 
   const card = el("div", "card"); card.style.padding = "14px"; card.style.marginTop = "4px";
-  const cnt = el("div", "k"); cnt.textContent = mine.length + " из " + BOT_LIMIT + " ботов"; card.append(cnt);
-  const add = el("button", "cta", "Создать бота"); add.style.marginTop = "10px";
+  const cnt = el("div", "k"); cnt.textContent = mine.length + T("ofBots") + BOT_LIMIT + T("botsW"); card.append(cnt);
+  const add = el("button", "cta", T("createBot")); add.style.marginTop = "10px";
   add.onclick = () => {
-    if (mine.length >= BOT_LIMIT) { toast("Достигнут лимит " + BOT_LIMIT + " ботов"); return; }
+    if (mine.length >= BOT_LIMIT) { toast(T("limitHit") + BOT_LIMIT); return; }
     newBotDialog();
   };
   card.append(add);
@@ -2680,7 +2591,7 @@ async function awardBotBadge(done){
   }
 
   const d = $("dlg"); d.replaceChildren();
-  d.append(el("h3", null, "Вам доступен значок"));
+  d.append(el("h3", null, T("badgeGift")));
   const wrap = el("div"); wrap.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:12px;padding:14px 0";
   if (badge && badge.img) {
     const im = document.createElement("img"); im.src = badge.img;
@@ -2693,7 +2604,7 @@ async function awardBotBadge(done){
   wrap.append(el("div", null, badge ? (badge.name || "bot creator") : "bot creator"));
   d.append(wrap);
 
-  const ok = el("button", "cta", "Хорошо");
+  const ok = el("button", "cta", T("good"));
   ok.onclick = async () => {
     ok.disabled = true;
     if (badge) {
@@ -2739,7 +2650,7 @@ function newBotDialog(){
         verified: false, verifyAsked: false, badges: [], banned: false,
         createdAt: serverTimestamp()
       });
-toast("\u0411\u043e\u0442 \u0441\u043e\u0437\u0434\u0430\u043d");
+toast(T("created"));
       const wasFirst = (cnt.size === 0);
       const newBot = { uid: ref.id, nick, nickLow: low, name, isBot: true, botOwner: me.uid, photo: "" };
       if (wasFirst) { closeDlg(); awardBotBadge(() => botEditor(newBot)); }
@@ -2845,7 +2756,7 @@ function ruleEditor(b, r, done){
     else { matchBox.classList.remove("hide"); mi.placeholder = type === "command" ? "\u043d\u0430\u043f\u0440. /help" : (type === "contains" ? "\u0441\u043b\u043e\u0432\u043e \u0432 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0438" : "\u0442\u043e\u0447\u043d\u044b\u0439 \u0442\u0435\u043a\u0441\u0442"); }
   };
   for (const [key, label] of RULE_TYPES) {
-    const pill = el("button", "pill" + (key === type ? " on" : ""), label);
+    const pill = el("button", "pill" + (key === type ? " on" : ""), T(label));
     pill.onclick = () => { type = key; types.querySelectorAll(".pill").forEach(x => x.classList.remove("on")); pill.classList.add("on"); syncMatch(); };
     types.append(pill);
   }
