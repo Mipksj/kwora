@@ -993,6 +993,7 @@ function fgStepAccounts(){
     row.onclick = () => fgDo(a, row);
     b.append(row);
   }
+  const err = el("div", "note"); err.id = "fgErr"; b.append(err);
   if (FG.accounts.length < 4) {
     const add = el("button", "ghost", T("newAcc")); add.style.marginTop = "10px";
     add.onclick = fgStepRegister;
@@ -1037,18 +1038,27 @@ function fgStepRegister(){
 /* вход по токену */
 async function fgDo(a, btn){
   if (btn) btn.disabled = true;
-  try {
-    const r = await callMailConfirm({ mail: FG.mail, code: FG.code, action: "login", uid: a.uid });
-    const token = r.data && r.data.token;
-    if (!token) throw new Error("Токен не получен");
-    $("forgot").classList.add("hide");
-    $("splash").classList.remove("hide");
-    await signInWithCustomToken(auth, token);
-  } catch (e) {
-    toast(fbErr(e));
-    if (btn) btn.disabled = false;
+  $("forgot").classList.add("hide");
+  $("splash").classList.remove("hide");
+  const slow = setTimeout(() => {
     $("splash").classList.add("hide");
     $("forgot").classList.remove("hide");
+    const e = $("fgErr"); if (e) e.textContent = "Сервер не ответил за 15 секунд. Попробуйте ещё раз.";
+    if (btn) btn.disabled = false;
+  }, 15000);
+  try {
+    const r = await callMailConfirm({ mail: FG.mail, code: FG.code, action: "login", uid: a.uid });
+    clearTimeout(slow);
+    const token = r.data && r.data.token;
+    if (!token) throw new Error("Токен не получен");
+    await signInWithCustomToken(auth, token);
+  } catch (e) {
+    clearTimeout(slow);
+    $("splash").classList.add("hide");
+    $("forgot").classList.remove("hide");
+    const eb = $("fgErr"); if (eb) eb.textContent = fbErr(e);
+    else toast(fbErr(e));
+    if (btn) btn.disabled = false;
   }
 }
 
