@@ -483,6 +483,19 @@ img{display:block;max-width:100%}
 <script>
 window.__lastErr = "";
 window.addEventListener("error", function (e) {
+  if (e && e.target && (e.target.tagName === "SCRIPT" || e.target.tagName === "LINK")) {
+    var src = e.target.src || e.target.href || "?";
+    window.__lastErr = "НЕ ЗАГРУЗИЛСЯ ФАЙЛ: " + src.split("/").pop();
+    try {
+      var d = document.createElement("div");
+      d.style.cssText = "position:fixed;left:8px;right:8px;top:8px;z-index:99999;background:#B3261E;color:#fff;padding:10px 12px;border-radius:12px;font:13px/1.4 monospace;word-break:break-word";
+      d.textContent = window.__lastErr;
+      document.body.appendChild(d);
+    } catch (_) {}
+    return;
+  }
+}, true);
+window.addEventListener("error", function (e) {
   try {
     window.__lastErr = (e.message || "") + " @" + ((e.filename||"").split("/").pop()) + ":" + (e.lineno||"");
     var d = document.createElement("div");
