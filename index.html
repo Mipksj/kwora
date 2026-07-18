@@ -481,8 +481,10 @@ img{display:block;max-width:100%}
 <input type="file" id="pickBadge" accept="image/*" class="hide">
 
 <script>
+window.__lastErr = "";
 window.addEventListener("error", function (e) {
   try {
+    window.__lastErr = (e.message || "") + " @" + ((e.filename||"").split("/").pop()) + ":" + (e.lineno||"");
     var d = document.createElement("div");
     d.style.cssText = "position:fixed;left:8px;right:8px;top:8px;z-index:99999;background:#B3261E;color:#fff;padding:10px 12px;border-radius:12px;font:13px/1.4 monospace;word-break:break-word;white-space:pre-wrap";
     d.textContent = "JS: " + (e.message || "") + "\n" + ((e.filename||"").split("/").pop()) + ":" + (e.lineno||"");
@@ -498,10 +500,12 @@ setTimeout(function () {
     var au = document.getElementById("auth");
     if (au) au.classList.remove("hide");
     var d = document.createElement("div");
-    d.style.cssText = "position:fixed;left:8px;right:8px;top:8px;z-index:99999;background:#8a6d1a;color:#fff;padding:10px 12px;border-radius:12px;font:13px/1.5 monospace;word-break:break-word";
-    d.textContent = window.__diag.length
-      ? "ДИАГНОСТИКА: " + window.__diag.join(" → ") + " …застряло после последнего шага. Пришли скрин."
-      : "ДИАГНОСТИКА: скрипты Firebase не загрузились (gstatic.com недоступен). Проверь интернет, VPN или блокировщик. Пришли скрин.";
+    d.style.cssText = "position:fixed;left:8px;right:8px;bottom:8px;z-index:99998;background:#8a6d1a;color:#fff;padding:10px 12px;border-radius:12px;font:13px/1.5 monospace;word-break:break-word";
+    d.textContent = (window.__diag.length
+      ? "ДИАГНОСТИКА: " + window.__diag.join(" → ") + " …застряло после последнего шага."
+      : "ДИАГНОСТИКА: скрипты не загрузились.")
+      + (window.__lastErr ? "  ОШИБКА: " + window.__lastErr : "  Ошибок не поймано.")
+      + "  Пришли скрин.";
     document.body.appendChild(d);
   }
 }, 8000);
@@ -510,6 +514,7 @@ window.addEventListener("unhandledrejection", function (e) {
     var d = document.createElement("div");
     d.style.cssText = "position:fixed;left:8px;right:8px;top:8px;z-index:99999;background:#B3261E;color:#fff;padding:10px 12px;border-radius:12px;font:13px/1.4 monospace;word-break:break-word;white-space:pre-wrap";
     var r = e.reason || {};
+    window.__lastErr = "PROMISE: " + (r.message || String(r)).slice(0, 200);
     d.textContent = "PROMISE: " + (r.message || String(r)).slice(0, 300);
     document.body.appendChild(d);
   } catch (_) {}
@@ -680,8 +685,11 @@ const ICE = {
 
 if (window.__mark) __mark("скрипты-ок");
 const fb = initializeApp(cfg);
+if (window.__mark) __mark("app");
 const auth = getAuth(fb);
+if (window.__mark) __mark("auth-mod");
 const db = getFirestore(fb);
+if (window.__mark) __mark("db-mod");
 const fns = getFunctions(fb);
 const callMailStart = httpsCallable(fns, "mailAuthStart");
 const callMailConfirm = httpsCallable(fns, "mailAuthConfirm");
