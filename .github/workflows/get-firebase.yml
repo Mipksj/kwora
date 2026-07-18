@@ -18,10 +18,13 @@ jobs:
           curl -fsSL -o firebase-auth.js $base/firebase-auth.js
           curl -fsSL -o firebase-firestore.js $base/firebase-firestore.js
           curl -fsSL -o firebase-functions.js $base/firebase-functions.js
+      - name: Patch internal links to local
+        run: |
+          sed -i 's#https://www.gstatic.com/firebasejs/10.12.2/#./#g' firebase-app.js firebase-auth.js firebase-firestore.js firebase-functions.js
       - name: Commit files
         run: |
           git config user.name "bot"
           git config user.email "bot@users.noreply.github.com"
           git add firebase-*.js
-          git commit -m "Local Firebase SDK" || echo "no changes"
+          git commit -m "Local Firebase SDK, patched" || echo "no changes"
           git push
