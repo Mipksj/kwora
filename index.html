@@ -541,14 +541,14 @@ setTimeout(function () {
     if (au) au.classList.remove("hide");
     var d = document.createElement("div");
     d.style.cssText = "position:fixed;left:8px;right:8px;bottom:8px;z-index:99998;background:#8a6d1a;color:#fff;padding:10px 12px;border-radius:12px;font:13px/1.5 monospace;word-break:break-word";
-    d.textContent = (window.__diag.length
+    d.textContent = "v42 | " + (window.__diag.length
       ? "ДИАГНОСТИКА: " + window.__diag.join(" → ") + " …застряло после последнего шага."
-      : "ДИАГНОСТИКА: скрипты не загрузились.")
+      : "ДИАГНОСТИКА: скрипты качаются слишком долго (слабая сеть). Подожди ещё немного или смени сеть.")
       + (window.__lastErr ? "  ОШИБКА: " + window.__lastErr : "  Ошибок не поймано.")
       + "  Пришли скрин.";
     document.body.appendChild(d);
   }
-}, 8000);
+}, 20000);
 window.addEventListener("unhandledrejection", function (e) {
   try {
     var d = document.createElement("div");
@@ -1601,6 +1601,4 @@ function head(){
   if (f.verified) n.append(tick());
   n.append(miniBadges(f.badges, true));
   $("peerSub").textContent = c.type === "group" ? (c.members || []).length + T("members") : "@" + (f.nick || "");
-  const grp = c.type === "group";
-  $("callA").classList.toggle("hide", grp);
-  $("callV").cl
+  const grp = c.type ==
