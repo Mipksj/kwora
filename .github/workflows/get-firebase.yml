@@ -1,0 +1,27 @@
+name: Get Firebase SDK
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download Firebase files
+        run: |
+          base=https://www.gstatic.com/firebasejs/10.12.2
+          curl -fsSL -o firebase-app.js $base/firebase-app.js
+          curl -fsSL -o firebase-auth.js $base/firebase-auth.js
+          curl -fsSL -o firebase-firestore.js $base/firebase-firestore.js
+          curl -fsSL -o firebase-functions.js $base/firebase-functions.js
+      - name: Commit files
+        run: |
+          git config user.name "bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add firebase-*.js
+          git commit -m "Local Firebase SDK" || echo "no changes"
+          git push
