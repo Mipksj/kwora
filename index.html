@@ -489,6 +489,8 @@ window.addEventListener("error", function (e) {
     document.body.appendChild(d);
   } catch (_) {}
 });
+window.__diag = [];
+window.__mark = function (m) { window.__diag.push(m); };
 setTimeout(function () {
   var sp = document.getElementById("splash");
   if (sp && !sp.classList.contains("hide")) {
@@ -496,8 +498,10 @@ setTimeout(function () {
     var au = document.getElementById("auth");
     if (au) au.classList.remove("hide");
     var d = document.createElement("div");
-    d.style.cssText = "position:fixed;left:8px;right:8px;top:8px;z-index:99999;background:#8a6d1a;color:#fff;padding:10px 12px;border-radius:12px;font:13px/1.4 monospace";
-    d.textContent = "Загрузка затянулась. Проверьте интернет. Если повторится — пришлите скрин вкладки Network (F12).";
+    d.style.cssText = "position:fixed;left:8px;right:8px;top:8px;z-index:99999;background:#8a6d1a;color:#fff;padding:10px 12px;border-radius:12px;font:13px/1.5 monospace;word-break:break-word";
+    d.textContent = window.__diag.length
+      ? "ДИАГНОСТИКА: " + window.__diag.join(" → ") + " …застряло после последнего шага. Пришли скрин."
+      : "ДИАГНОСТИКА: скрипты Firebase не загрузились (gstatic.com недоступен). Проверь интернет, VPN или блокировщик. Пришли скрин.";
     document.body.appendChild(d);
   }
 }, 8000);
@@ -674,6 +678,7 @@ const ICE = {
   iceCandidatePoolSize: 10
 };
 
+if (window.__mark) __mark("скрипты-ок");
 const fb = initializeApp(cfg);
 const auth = getAuth(fb);
 const db = getFirestore(fb);
@@ -682,6 +687,7 @@ const callMailStart = httpsCallable(fns, "mailAuthStart");
 const callMailConfirm = httpsCallable(fns, "mailAuthConfirm");
 const callLoginLookup = httpsCallable(fns, "loginLookup");
 const callClaimBadge = httpsCallable(fns, "claimBotBadge");
+if (window.__mark) __mark("firebase-ок");
 
 const $ = i => document.getElementById(i);
 const U = u => doc(db, "users", u);
@@ -719,6 +725,7 @@ document.addEventListener("click", e => {
 function paintEyes(root){ (root || document).querySelectorAll(".eye").forEach(b => { if (!b.innerHTML.trim()) b.innerHTML = EYE_ON; }); }
 paintEyes();
 applyLang();
+if (window.__mark) __mark("интерфейс-ок");
 
 function passField(ph, ac){
   const box = el("div", "inp");
@@ -1078,6 +1085,7 @@ async function fgDo(a, btn){
 
 
 onAuthStateChanged(auth, async u => {
+  if (window.__mark) __mark("вход:" + (u ? "есть-сессия" : "нет-сессии"));
   if (busy) return;
   $("splash").classList.add("hide");
   if (!u) { stopAll(); return; }
@@ -1107,6 +1115,7 @@ function stopAll(){
 }
 
 async function start(p){
+  if (window.__mark) __mark("старт-профиля");
   me = p; cache.set(me.uid, me);
   $("auth").classList.add("hide"); $("splash").classList.add("hide"); $("app").classList.remove("hide"); $("go").disabled = false;
 
@@ -1838,15 +1847,4 @@ async function openProfile(uid){
   const h = el("div", "pf-head");
   h.append(ava(p, 84));
   const nm = el("div", "pf-name");
-  nm.append(el("span", null, p.name || p.nick));
-  if (p.verified) nm.append(tick());
-  nm.append(miniBadges(p.badges));
-  h.append(nm);
-  h.append(el("div", "pf-nick", "@" + p.nick));
-  if (p.bio) { const bio = el("div", null, p.bio); bio.style.cssText = "margin-top:8px;font-size:14px;color:var(--tx)"; h.append(bio); }
-  sp.append(h);
-
-  const shown = (p.badges || []).map(id => badgeCat.find(b => b.id === id)).filter(Boolean);
-  if (shown.length) {
-    const sec = el("div", "pf-sec");
-    sec.append(el(
+  n
