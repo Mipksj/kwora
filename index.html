@@ -561,18 +561,26 @@ window.addEventListener("unhandledrejection", function (e) {
 });
 </script>
 <script type="module">
-import { initializeApp } from "./firebase-app.js";
-import {
-  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut,
-  deleteUser, onAuthStateChanged, updatePassword,
-  reauthenticateWithCredential, EmailAuthProvider, signInWithCustomToken
-} from "./firebase-auth.js";
-import { getFunctions, httpsCallable } from "./firebase-functions.js";
-import {
-  getFirestore, initializeFirestore, doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, addDoc,
-  collection, query, where, orderBy, limit, onSnapshot, serverTimestamp,
-  writeBatch, arrayUnion, arrayRemove, deleteField
-} from "./firebase-firestore.js";
+
+
+
+
+
+let __fb = {};
+try {
+  __fb.app = await import("./firebase-app.js");
+  __fb.auth = await import("./firebase-auth.js");
+  __fb.functions = await import("./firebase-functions.js");
+  __fb.firestore = await import("./firebase-firestore.js");
+} catch (e) {
+  window.__lastErr = "ИМПОРТ: " + (e && e.message ? e.message : e);
+  document.body.insertAdjacentHTML("beforeend", '<div style="position:fixed;left:8px;right:8px;top:8px;z-index:99999;background:#B3261E;color:#fff;padding:10px;border-radius:12px;font:13px monospace;word-break:break-word">' + window.__lastErr + "</div>");
+  throw e;
+}
+const { initializeApp } = __fb.app;
+const { getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,deleteUser,onAuthStateChanged,updatePassword,reauthenticateWithCredential,EmailAuthProvider,signInWithCustomToken } = __fb.auth;
+const { getFunctions,httpsCallable } = __fb.functions;
+const { getFirestore,initializeFirestore,doc,setDoc,getDoc,getDocs,deleteDoc,updateDoc,addDoc,collection,query,where,orderBy,limit,onSnapshot,serverTimestamp,writeBatch,arrayUnion,arrayRemove,deleteField } = __fb.firestore;
 
 const cfg = {
   apiKey: "AIzaSyCkp9-fJ30nYnDe0H0QsUVXlUeicw6hcEM",
