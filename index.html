@@ -2316,7 +2316,8 @@ async function pushToken(){
   try {
     if (!__msg || VAPID_KEY.indexOf("PASTE") === 0) return;
     if (!(await __msg.isSupported().catch(() => false))) return;
-    const reg = await navigator.serviceWorker.ready;
+    const reg = await ensureSW();
+    if (!reg || !reg.active) return;
     const m = __msg.getMessaging(fb);
     const t = await __msg.getToken(m, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
     if (t && me) await updateDoc(U(me.uid), { fcmTokens: arrayUnion(t) }).catch(() => {});
@@ -2351,6 +2352,21 @@ function pushBanner(){
   document.body.append(bar);
 }
 
+async function ensureSW(){
+  if (!("serviceWorker" in navigator)) return null;
+  try {
+    let reg = await navigator.serviceWorker.getRegistration();
+    if (!reg) reg = await navigator.serviceWorker.register("sw.js");
+    // дождаться активации
+    for (let i = 0; i < 40; i++) {
+      reg = (await navigator.serviceWorker.getRegistration()) || reg;
+      if (reg && reg.active) return reg;
+      await new Promise(r => setTimeout(r, 250));
+    }
+    return reg;
+  } catch (e) { window.__swErr = (e && e.message) || String(e); return null; }
+}
+
 async function pushDiag(){
   const out = [];
   try {
@@ -2371,11 +2387,8 @@ async function pushDiag(){
     // 4. разрешение
     out.push("Разрешение: " + (("Notification" in window) ? Notification.permission : "недоступно"));
     // 5. воркер
-    const reg = await Promise.race([
-      navigator.serviceWorker.ready,
-      new Promise((res) => setTimeout(() => res(null), 4000))
-    ]);
-    out.push(reg ? "OK service worker активен" : "НЕТ service worker не активен");
+    const reg = await ensureSW();
+    out.push(reg && reg.active ? "OK service worker активен" : ("НЕТ service worker: " + (window.__swErr || "не активировался")));
     // 6. токен
     if (__msg && reg && ("Notification" in window) && Notification.permission === "granted") {
       try {
@@ -3423,7 +3436,9 @@ function closeDlg(){ $("modal").classList.remove("on"); }
 /* PWA: регистрируем service worker (сеть в приоритете, кэш только офлайн) */
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-  navigator.serviceWorker.register("sw.js").catch(() => {});
+  navigator.serviceWorker.register("sw.js").then(r => {
+    window.__swReg = r;
+  }).catch(e => { window.__swErr = (e && e.message) || String(e); });
   });
 }
 
