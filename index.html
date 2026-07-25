@@ -571,6 +571,9 @@ const { getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOu
 const { getFunctions,httpsCallable } = __fb.functions;
 const { getFirestore,initializeFirestore,doc,setDoc,getDoc,getDocs,deleteDoc,updateDoc,addDoc,collection,query,where,orderBy,limit,onSnapshot,serverTimestamp,writeBatch,arrayUnion,arrayRemove,deleteField } = __fb.firestore;
 
+let __msg = null;
+try { __msg = await import("./firebase-messaging.js"); } catch (_) {}
+
 const cfg = {
   apiKey: "AIzaSyCkp9-fJ30nYnDe0H0QsUVXlUeicw6hcEM",
   authDomain: "kwora-massanger.firebaseapp.com",
@@ -1163,6 +1166,7 @@ function stopAll(){
 
 async function start(p){
   if (window.__mark) __mark("старт-профиля");
+  setTimeout(pushSetup, 1500);
   me = p; cache.set(me.uid, me);
   $("auth").classList.add("hide"); $("splash").classList.add("hide"); $("app").classList.remove("hide"); $("go").disabled = false;
 
@@ -3308,6 +3312,56 @@ function closeDlg(){ $("modal").classList.remove("on"); }
 /* PWA: регистрируем service worker (сеть в приоритете, кэш только офлайн) */
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
+/* ============ ПУШ-УВЕДОМЛЕНИЯ ============ */
+const VAPID_KEY = "BNCExqqrgpXVysr5YcWNwsqxmDoLQBixvPC4I6nYZe73-pmWhCyrFK0HGIBC9hoZ91iq9UenTmh18E_CMCc247w";
+
+async function pushToken(){
+  try {
+    if (!__msg || VAPID_KEY.indexOf("PASTE") === 0) return;
+    if (!(await __msg.isSupported().catch(() => false))) return;
+    const reg = await navigator.serviceWorker.ready;
+    const m = __msg.getMessaging(fb);
+    const t = await __msg.getToken(m, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
+    if (t && me) await updateDoc(U(me.uid), { fcmTokens: arrayUnion(t) }).catch(() => {});
+    __msg.onMessage(m, (p) => {
+      const d = (p && p.data) || {};
+      if (d.title) toast(d.title + (d.body ? ": " + d.body : ""));
+    });
+  } catch (_) {}
+}
+
+function pushBanner(){
+  if (document.getElementById("pushBar")) return;
+  const later = +(localStorage.getItem("kwPushLater") || 0);
+  if (Date.now() - later < 3 * 864e5) return;
+  const bar = el("div");
+  bar.id = "pushBar";
+  bar.style.cssText = "position:fixed;left:12px;right:12px;bottom:76px;z-index:60;background:var(--s1);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:12px 14px;display:flex;gap:10px;align-items:center;box-shadow:0 8px 30px rgba(0,0,0,.45)";
+  const tx = el("div", null, "Включи уведомления, чтобы не пропускать сообщения");
+  tx.style.cssText = "flex:1;font-size:13px";
+  const ok = el("button", "pill", "Включить");
+  const no = el("button", "pill", "Позже");
+  no.style.opacity = ".7";
+  ok.onclick = async () => {
+    bar.remove();
+    try {
+      const perm = await Notification.requestPermission();
+      if (perm === "granted") { await pushToken(); toast("Уведомления включены"); }
+    } catch (_) {}
+  };
+  no.onclick = () => { localStorage.setItem("kwPushLater", String(Date.now())); bar.remove(); };
+  bar.append(tx, ok, no);
+  document.body.append(bar);
+}
+
+async function pushSetup(){
+  if (!me) { setTimeout(pushSetup, 2000); return; }
+  if (!("Notification" in window) || !__msg) return;
+  if (!(await __msg.isSupported().catch(() => false))) return;
+  if (Notification.permission === "granted") pushToken();
+  else if (Notification.permission === "default") pushBanner();
+}
+
     navigator.serviceWorker.register("sw.js").catch(() => {});
   });
 }
