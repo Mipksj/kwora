@@ -531,7 +531,7 @@ window.addEventListener("error", function (e) {
     window.__lastErr = (e.message || "") + " @" + ((e.filename||"").split("/").pop()) + ":" + (e.lineno||"");
     var d = document.createElement("div");
     d.style.cssText = "position:fixed;left:8px;right:8px;top:8px;z-index:99999;background:#B3261E;color:#fff;padding:10px 12px;border-radius:12px;font:13px/1.4 monospace;word-break:break-word;white-space:pre-wrap";
-    d.textContent = "JS: " + (e.message || "") + "\n" + ((e.filename||"").split("/").pop()) + ":" + (e.lineno||"");
+    d.textContent = "v43 | JS: " + (e.message || "") + "\n" + ((e.filename||"").split("/").pop()) + ":" + (e.lineno||"");
     document.body.appendChild(d);
   } catch (_) {}
 });
@@ -544,7 +544,7 @@ window.addEventListener("unhandledrejection", function (e) {
     d.style.cssText = "position:fixed;left:8px;right:8px;top:8px;z-index:99999;background:#B3261E;color:#fff;padding:10px 12px;border-radius:12px;font:13px/1.4 monospace;word-break:break-word;white-space:pre-wrap";
     var r = e.reason || {};
     window.__lastErr = "PROMISE: " + (r.message || String(r)).slice(0, 200);
-    d.textContent = "PROMISE: " + (r.message || String(r)).slice(0, 300);
+    d.textContent = "v43 | PROMISE: " + (r.message || String(r)).slice(0, 300);
     document.body.appendChild(d);
   } catch (_) {}
 });
@@ -2351,6 +2351,54 @@ function pushBanner(){
   document.body.append(bar);
 }
 
+async function pushDiag(){
+  const out = [];
+  try {
+    // 1. файлы на сайте
+    for (const f of ["firebase-messaging.js", "firebase-app-compat.js", "firebase-messaging-compat.js"]) {
+      try {
+        const r = await fetch("./" + f, { method: "HEAD", cache: "no-store" });
+        out.push((r.ok ? "OK" : "НЕТ") + " файл " + f);
+      } catch (_) { out.push("НЕТ файл " + f); }
+    }
+    // 2. модуль подгрузился
+    out.push(__msg ? "OK модуль пушей загружен" : "НЕТ модуль пушей не загрузился (нет firebase-messaging.js — запусти воркфлоу get firebase и обнови страницу)");
+    // 3. поддержка браузером
+    if (__msg) {
+      const sup = await __msg.isSupported().catch(() => false);
+      out.push(sup ? "OK браузер поддерживает пуши" : "НЕТ браузер не поддерживает пуши (Web View без Chrome?)");
+    }
+    // 4. разрешение
+    out.push("Разрешение: " + (("Notification" in window) ? Notification.permission : "недоступно"));
+    // 5. воркер
+    const reg = await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise((res) => setTimeout(() => res(null), 4000))
+    ]);
+    out.push(reg ? "OK service worker активен" : "НЕТ service worker не активен");
+    // 6. токен
+    if (__msg && reg && ("Notification" in window) && Notification.permission === "granted") {
+      try {
+        const m = __msg.getMessaging(fb);
+        const t = await __msg.getToken(m, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
+        if (t) {
+          out.push("OK токен получен: …" + t.slice(-10));
+          if (me) { await updateDoc(U(me.uid), { fcmTokens: arrayUnion(t) }); out.push("OK токен записан в профиль"); }
+        } else out.push("НЕТ токен пустой");
+      } catch (e) { out.push("НЕТ токен: " + (e.message || e)); }
+    } else if (("Notification" in window) && Notification.permission === "default") {
+      out.push("→ Разрешение ещё не спрошено. Жми ОК — спрошу сейчас.");
+    } else if (("Notification" in window) && Notification.permission === "denied") {
+      out.push("→ Уведомления запрещены для сайта. Разреши в настройках сайта (замочек в адресной строке).");
+    }
+  } catch (e) { out.push("Сбой диагностики: " + (e.message || e)); }
+  alert("ПРОВЕРКА ПУШЕЙ:\n\n" + out.join("\n"));
+  if (("Notification" in window) && Notification.permission === "default") {
+    const perm = await Notification.requestPermission().catch(() => "default");
+    if (perm === "granted") { await pushToken(); toast("Уведомления включены"); }
+  }
+}
+
 async function pushSetup(){
   if (!me) { setTimeout(pushSetup, 2000); return; }
   if (!("Notification" in window) || !__msg) return;
@@ -2729,6 +2777,15 @@ function drawMe(){
   const l5 = el("div", "line"); const vv = el("div", "grow"); vv.append(el("div", "k", T("fTick"))); vv.append(el("div", "v", me.verified ? T("tickYes") : (me.verifyAsked ? T("tickAsk") : T("tickNo")))); l5.append(vv);
   if (!me.verified && !me.verifyAsked) { const a = el("button", "pill", T("apply")); a.onclick = async () => { try { await updateDoc(U(me.uid), { verifyAsked: true, verifyAt: serverTimestamp() }); toast(T("appSent")); } catch (e) { toast(say(e)); } }; l5.append(a); }
   c2.append(l5); box.append(c2);
+
+  box.append(el("div", "cap", "Уведомления"));
+  const pcard = el("div", "card");
+  const pline = el("div", "line");
+  const pbtn = el("button", "pill", "Проверить пуши");
+  pbtn.onclick = pushDiag;
+  pline.append(el("div", null, "Статус уведомлений"), pbtn);
+  pcard.append(pline);
+  box.append(pcard);
 
   box.append(el("div", "cap", T("capLang")));
   const cl = el("div", "card");
