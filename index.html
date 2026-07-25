@@ -2355,13 +2355,11 @@ function pushBanner(){
 async function ensureSW(){
   if (!("serviceWorker" in navigator)) return null;
   try {
-    let reg = await navigator.serviceWorker.getRegistration();
-    if (!reg) reg = await navigator.serviceWorker.register("sw.js");
-    // дождаться активации
+    let reg = await navigator.serviceWorker.register("fcm-sw.js", { scope: "./" });
     for (let i = 0; i < 40; i++) {
-      reg = (await navigator.serviceWorker.getRegistration()) || reg;
       if (reg && reg.active) return reg;
       await new Promise(r => setTimeout(r, 250));
+      reg = (await navigator.serviceWorker.getRegistration("./")) || reg;
     }
     return reg;
   } catch (e) { window.__swErr = (e && e.message) || String(e); return null; }
@@ -2405,7 +2403,7 @@ async function pushDiag(){
       out.push("→ Уведомления запрещены для сайта. Разреши в настройках сайта (замочек в адресной строке).");
     }
   } catch (e) { out.push("Сбой диагностики: " + (e.message || e)); }
-  alert("ПРОВЕРКА ПУШЕЙ:\n\n" + out.join("\n"));
+  alert("ПРОВЕРКА ПУШЕЙ v44:\n\n" + out.join("\n"));
   if (("Notification" in window) && Notification.permission === "default") {
     const perm = await Notification.requestPermission().catch(() => "default");
     if (perm === "granted") { await pushToken(); toast("Уведомления включены"); }
