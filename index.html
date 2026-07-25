@@ -479,7 +479,7 @@ img{display:block;max-width:100%}
     <div class="gc-bar">
       <button id="gcMic" class="gc-btn"></button>
       <button id="gcCam" class="gc-btn"></button>
-      <button id="gcOut" class="gc-btn red">✕</button>
+      <button id="gcOut" class="gc-btn red"></button>
     </div>
   </div>
   <div id="call">
@@ -1606,7 +1606,8 @@ function head(){
       : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EDEFF4" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="12" height="12" rx="3"/><path d="M14.5 10.5l6-3v9l-6-3z"/></svg>';
     gb.title = on ? "Присоединиться" : "Групповой звонок";
     gb.onclick = () => joinGroupCall(!on);
-    $("peerSub").textContent = on ? "🟢 Идёт звонок — жми присоединиться" : (c.members || []).length + T("members");
+    if (on) $("peerSub").innerHTML = '<span style="color:#34D399">●</span> Идёт звонок — жми присоединиться';
+    else $("peerSub").textContent = (c.members || []).length + T("members");
   }
 }
 $("peerHead").onclick = $("peerAva").onclick = () => {
@@ -1894,7 +1895,7 @@ function pollDialog(){
     try {
       await addDoc(collection(db, "chats", active.id, "messages"),
         { from: me.uid, at: serverTimestamp(), poll: { q, opts }, votes: {} });
-      await updateDoc(C(active.id), { lastText: "📊 " + q.slice(0, 60), lastFrom: me.uid, lastAt: serverTimestamp() });
+      await updateDoc(C(active.id), { lastText: "Опрос: " + q.slice(0, 60), lastFrom: me.uid, lastAt: serverTimestamp() });
       closeDlg();
     } catch (e) { err.textContent = say(e); ok.disabled = false; }
   };
@@ -1923,7 +1924,7 @@ async function contactPick(){
       try {
         await addDoc(collection(db, "chats", active.id, "messages"),
           { from: me.uid, at: serverTimestamp(), contact: { uid: p.uid, nick: p.nick || "", name: p.name || p.nick || "", photo: p.photo || "" } });
-        await updateDoc(C(active.id), { lastText: "👤 " + (p.name || p.nick), lastFrom: me.uid, lastAt: serverTimestamp() });
+        await updateDoc(C(active.id), { lastText: "Контакт: " + (p.name || p.nick), lastFrom: me.uid, lastAt: serverTimestamp() });
         closeDlg();
       } catch (e) { toast(say(e)); row.disabled = false; }
     };
@@ -2293,6 +2294,13 @@ function watchPC(pc){
     if (pc.connectionState === "failed") { toast("Соединение не установилось. Скорее всего нужен TURN-сервер."); endCall(); }
   };
 }
+const GCI = {
+  mic: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></svg>',
+  micOff: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FF8A8A" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/><line x1="4" y1="3.5" x2="20" y2="20.5"/></svg>',
+  cam: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="12.5" height="11" rx="3"/><path d="M15 10.8l6.5-3.3v9l-6.5-3.3z"/></svg>',
+  camOff: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FF8A8A" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="12.5" height="11" rx="3"/><path d="M15 10.8l6.5-3.3v9l-6.5-3.3z"/><line x1="3.5" y1="4" x2="20.5" y2="20"/></svg>',
+  hang: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path transform="rotate(135 12 12)" d="M6.6 3.5l2 .4 1 3.2-1.8 1.4a12 12 0 0 0 5.7 5.7l1.4-1.8 3.2 1 .4 2a2 2 0 0 1-2 2.3A15.5 15.5 0 0 1 4.3 5.5a2 2 0 0 1 2.3-2z"/></svg>'
+};
 /* ============ ГРУППОВОЙ ЗВОНОК (mesh) ============ */
 let gc = null; // { chatId, stream, peers:Map<uid,{pc,subs:[]}>, subs:[], mic:true, cam:true }
 
@@ -2371,8 +2379,9 @@ async function joinGroupCall(create){
   gc = { chatId, stream, peers: new Map(), subs: [], mic: true, cam: true };
   $("gcGrid").replaceChildren();
   gcTile(me.uid, me.name || me.nick, stream, true);
-  $("gcMic").innerHTML = "🎙"; $("gcMic").classList.remove("off");
-  $("gcCam").innerHTML = "🎥"; $("gcCam").classList.remove("off");
+  $("gcMic").innerHTML = GCI.mic; $("gcMic").classList.remove("off");
+  $("gcCam").innerHTML = GCI.cam; $("gcCam").classList.remove("off");
+  $("gcOut").innerHTML = GCI.hang;
   $("gcall").classList.remove("hide");
   try {
     if (create) await updateDoc(C(chatId), { gcall: { active: true, by: me.uid, at: Date.now() } });
@@ -2418,12 +2427,14 @@ $("gcMic").onclick = () => {
   if (!gc) return;
   gc.mic = !gc.mic;
   gc.stream.getAudioTracks().forEach(t => t.enabled = gc.mic);
+  $("gcMic").innerHTML = gc.mic ? GCI.mic : GCI.micOff;
   $("gcMic").classList.toggle("off", !gc.mic);
 };
 $("gcCam").onclick = () => {
   if (!gc) return;
   gc.cam = !gc.cam;
   gc.stream.getVideoTracks().forEach(t => t.enabled = gc.cam);
+  $("gcCam").innerHTML = gc.cam ? GCI.cam : GCI.camOff;
   $("gcCam").classList.toggle("off", !gc.cam);
 };
 window.addEventListener("beforeunload", () => { if (gc) leaveGroupCall(true); });
@@ -3271,4 +3282,4 @@ window.addEventListener("beforeunload", () => { if (call) endCall(); });
 
 </script>
 </body>
-</html>
+</html>  
