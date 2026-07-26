@@ -1278,7 +1278,6 @@ function drawChats(){
     const t1 = el("div", "t1 ell");
     t1.append(el("span", "ell", f.name || f.nick));
     if (f.verified) t1.append(tick());
-    t1.append(miniBadges(f.badges, true));
     mid.append(t1);
     const last = c.lastText
       ? (c.lastFrom === me.uid ? T("you") + c.lastText : c.lastText)
@@ -1314,7 +1313,6 @@ async function search(t){
     const t1 = el("div", "t1 ell");
     t1.append(el("span", "ell", u.name || u.nick));
     if (u.verified) t1.append(tick());
-    t1.append(miniBadges(u.badges, true));
     mid.append(t1);
     mid.append(el("div", "t2 mono ell", "@" + u.nick));
     row.append(mid);
@@ -1369,7 +1367,6 @@ function drawPeople(){
     const t1 = el("div", "t1 ell");
     t1.append(el("span", "ell", p.name || p.nick));
     if (p.verified) t1.append(tick());
-    t1.append(miniBadges(p.badges, true));
     mid.append(t1);
     mid.append(el("div", "t2 mono ell", "@" + p.nick));
     row.append(mid);
@@ -1600,11 +1597,11 @@ function head(){
   const n = $("peerName");
   n.replaceChildren(el("span", "ell", f.name || f.nick));
   if (f.verified) n.append(tick());
-  n.append(miniBadges(f.badges, true));
   $("peerSub").textContent = c.type === "group" ? (c.members || []).length + T("members") : "@" + (f.nick || "");
   const grp = c.type === "group";
-  $("callA").classList.toggle("hide", grp);
-  $("callV").classList.toggle("hide", grp);
+  const isbot = !!(c.isBot || (c.peer && c.peer.isBot));
+  $("callA").classList.toggle("hide", grp || isbot);
+  $("callV").classList.toggle("hide", grp || isbot);
   const gb = $("gcBtn");
   gb.classList.toggle("hide", !grp);
   if (grp) {
@@ -2429,7 +2426,7 @@ function handleCallIntent(callId, act){
       if (d.state && d.state !== "ringing") { toast("Звонок уже завершён"); return; }
       if (act === "decline") { try { await updateDoc(K(callId), { state: "declined" }); } catch (_) {} return; }
       showIncoming(callId, d);
-      setTimeout(() => { try { $("rYes").click(); } catch (_) {} }, 300);
+      if (act === "answer") setTimeout(() => { try { $("rYes").click(); } catch (_) {} }, 300);
     } catch (_) {}
   })();
 }
@@ -2683,6 +2680,7 @@ function closeIncoming(){ incoming = null; $("ring").classList.remove("on"); sto
 $("rNo").onclick = async () => { if (!incoming) return; const id = incoming.id; closeIncoming(); try { await updateDoc(K(id), { state: "declined" }); } catch (_) {} };
 $("rYes").onclick = async () => {
   if (!incoming) return;
+  stopRing();
   const id = incoming.id; let d = incoming.d; closeIncoming();
   for (let i = 0; i < 6 && (!d || !d.offer); i++) { try { const s = await getDoc(K(id)); d = s.exists() ? s.data() : null; } catch (_) {} if (d && d.offer) break; await new Promise(r => setTimeout(r, 400)); }
   if (!d || !d.offer) { toast("Звонок сорвался"); return; }
@@ -2839,15 +2837,6 @@ function drawMe(){
   if (!me.verified && !me.verifyAsked) { const a = el("button", "pill", T("apply")); a.onclick = async () => { try { await updateDoc(U(me.uid), { verifyAsked: true, verifyAt: serverTimestamp() }); toast(T("appSent")); } catch (e) { toast(say(e)); } }; l5.append(a); }
   c2.append(l5); box.append(c2);
 
-  box.append(el("div", "cap", "Уведомления"));
-  const pcard = el("div", "card");
-  const pline = el("div", "line");
-  const pbtn = el("button", "pill", "Проверить пуши");
-  pbtn.onclick = pushDiag;
-  pline.append(el("div", null, "Статус уведомлений"), pbtn);
-  pcard.append(pline);
-  box.append(pcard);
-
   box.append(el("div", "cap", T("capLang")));
   const cl = el("div", "card");
   const ll = el("div", "line");
@@ -2973,6 +2962,7 @@ function adminPanel(){
   mk("1 · Заявки на галочку", adminVerify);
   mk("2 · Пользователи и группы", adminManage);
   mk("3 · Значки", adminBadges);
+  mk("4 · Проверить пуши", pushDiag);
   const off = el("div", "line"); const o = el("button", "grow danger", "Выключить админ-режим"); o.style.textAlign = "left";
   o.onclick = async () => { try { await deleteDoc(doc(db, "admins", me.uid)); isAdmin = false; drawMe(); toast("Админ-режим выключен"); } catch (e) { toast(say(e)); } };
   off.append(o); card.append(off);
