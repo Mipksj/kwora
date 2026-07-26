@@ -516,21 +516,6 @@ img{display:block;max-width:100%}
 <input type="file" id="pickBadge" accept="image/*" class="hide">
 
 <script>
-/* АВАРИЙНАЯ ОЧИСТКА: снять все service worker и кэши, если ?nocache или всегда при этой версии */
-(function(){
-  try {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function(rs){
-        rs.forEach(function(r){ r.unregister(); });
-      });
-    }
-    if (window.caches && caches.keys) {
-      caches.keys().then(function(ks){ ks.forEach(function(k){ caches.delete(k); }); });
-    }
-  } catch(e){}
-})();
-</script>
-<script>
 window.__lastErr = "";
 window.addEventListener("error", function (e) {
   if (e && e.target && (e.target.tagName === "SCRIPT" || e.target.tagName === "LINK")) {
@@ -556,13 +541,7 @@ window.addEventListener("error", function (e) {
 });
 window.__diag = [];
 window.__mark = function (m) { window.__diag.push(m); };
-setTimeout(function () {
-  if (document.querySelector("#app.on, .shell.on, [data-ready]")) return;
-  var d = document.createElement("div");
-  d.style.cssText = "position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;background:#8a6d00;color:#fff;padding:10px 12px;border-radius:12px;font:12px/1.4 monospace;white-space:pre-wrap;word-break:break-word";
-  d.textContent = "v45 этапы: " + (window.__diag.join(" -> ") || "(пусто)") + (window.__lastErr ? ("\nОШИБКА: " + window.__lastErr) : "");
-  document.body.appendChild(d);
-}, 6000);
+
 
 window.addEventListener("unhandledrejection", function (e) {
   try {
@@ -576,7 +555,6 @@ window.addEventListener("unhandledrejection", function (e) {
 });
 </script>
 <script type="module">
-if (window.__mark) __mark("СТРОКА-1"); else window.__diag = ["СТРОКА-1-без-mark"];
 
 
 
@@ -3713,7 +3691,6 @@ if ("serviceWorker" in navigator) {
 }
 
 window.addEventListener("beforeunload", () => { if (call) endCall(); });
-try { if (window.__mark) __mark("v45-конец-скрипта"); } catch(_){}
 </script>
 </body>
 </html>
