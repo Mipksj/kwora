@@ -36,12 +36,12 @@ self.addEventListener("notificationclick", (e) => {
   const url = data.url || "./";
   const act = e.action;
   const wantUrl = (data.type === "call")
-    ? (url + (url.indexOf("?") < 0 ? "?" : "&") + "call=" + encodeURIComponent(data.callId || "") + "&act=" + (act === "decline" ? "decline" : "answer"))
+    ? (url + (url.indexOf("?") < 0 ? "?" : "&") + "call=" + encodeURIComponent(data.callId || "") + "&act=" + (act === "decline" ? "decline" : (act === "answer" ? "answer" : "open")))
     : url;
   e.waitUntil(clients.matchAll({ type: "window", includeUncontrolled: true }).then((ws) => {
     for (const w of ws) {
       if ("focus" in w) {
-        try { w.postMessage({ kw: "call", callId: data.callId || "", act: act || "answer" }); } catch (_) {}
+        try { w.postMessage({ kw: "call", callId: data.callId || "", act: act || "open" }); } catch (_) {}
         return w.focus();
       }
     }
