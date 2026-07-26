@@ -2289,9 +2289,18 @@ function callUI(peer, video, state){
 function attach(){ if (!call) return; $("vRemote").srcObject = call.remote; $("vLocal").srcObject = call.local; const p = $("vRemote").play(); if (p && p.catch) p.catch(() => {}); }
 function addCand(data){ if (!call) return; const pc = call.pc; if (pc.remoteDescription && pc.remoteDescription.type) pc.addIceCandidate(new RTCIceCandidate(data)).catch(() => {}); else call.pending.push(data); }
 function flush(){ if (!call) return; call.pending.forEach(c => call.pc.addIceCandidate(new RTCIceCandidate(c)).catch(() => {})); call.pending = []; }
+async function acquireWake(){
+  try { if ("wakeLock" in navigator) window.__wake = await navigator.wakeLock.request("screen"); } catch (_) {}
+}
+function releaseWake(){ try { if (window.__wake) { window.__wake.release(); window.__wake = null; } } catch (_) {} }
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && call && call.t0 && !window.__wake) acquireWake();
+});
+
 function connected(){
   if (!call || call.t0) return;
   call.t0 = Date.now(); clearTimeout(call.noAnswer);
+  acquireWake();
   const t = () => { if (!call || !call.t0) return; const s = Math.floor((Date.now() - call.t0) / 1000); $("callState").textContent = String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); };
   t(); call.timer = setInterval(t, 1000);
 }
@@ -2409,6 +2418,43 @@ async function pushDiag(){
     if (perm === "granted") { await pushToken(); toast("Уведомления включены"); }
   }
 }
+
+function handleCallIntent(callId, act){
+  if (!callId) return;
+  (async () => {
+    try {
+      const cs = await getDoc(K(callId));
+      if (!cs.exists()) { toast("Звонок уже завершён"); return; }
+      const d = cs.data();
+      if (d.state && d.state !== "ringing") { toast("Звонок уже завершён"); return; }
+      if (act === "decline") { try { await updateDoc(K(callId), { state: "declined" }); } catch (_) {} return; }
+      showIncoming(callId, d);
+      setTimeout(() => { try { $("rYes").click(); } catch (_) {} }, 300);
+    } catch (_) {}
+  })();
+}
+
+// клик по кнопке в шторке, когда вкладка жива
+navigator.serviceWorker && navigator.serviceWorker.addEventListener("message", (e) => {
+  const m = e.data || {};
+  if (m.kw === "call") handleCallIntent(m.callId, m.act);
+});
+
+// открытие по ссылке из пуша (телефон спал)
+(function () {
+  try {
+    const u = new URL(location.href);
+    const callId = u.searchParams.get("call");
+    const act = u.searchParams.get("act") || "answer";
+    if (callId) {
+      const iv = setInterval(() => {
+        if (typeof me !== "undefined" && me) { clearInterval(iv); handleCallIntent(callId, act); }
+      }, 500);
+      setTimeout(() => clearInterval(iv), 20000);
+      history.replaceState(null, "", u.pathname);
+    }
+  } catch (_) {}
+})();
 
 async function pushSetup(){
   if (!me) { setTimeout(pushSetup, 2000); return; }
@@ -2532,6 +2578,7 @@ async function joinGroupCall(create){
   $("gcCam").innerHTML = GCI.cam; $("gcCam").classList.remove("off");
   $("gcOut").innerHTML = GCI.hang;
   $("gcall").classList.remove("hide");
+  acquireWake();
   try {
     if (create) await updateDoc(C(chatId), { gcall: { active: true, by: me.uid, at: Date.now() } });
     await setDoc(doc(db, "chats", chatId, "gcall", me.uid), {
@@ -2563,6 +2610,7 @@ async function leaveGroupCall(clean = true){
   if (g.ac) { try { g.ac.close(); } catch (_) {} }
   try { g.stream.getTracks().forEach(t => t.stop()); } catch (_) {}
   $("gcall").classList.add("hide");
+  releaseWake();
   $("gcGrid").replaceChildren();
   if (clean) {
     try {
@@ -2666,6 +2714,7 @@ async function endCall(notify = true){
   c.unsubs.forEach(f => { try { f(); } catch (_) {} });
   try { c.local.getTracks().forEach(t => t.stop()); } catch (_) {}
   try { c.pc.close(); } catch (_) {}
+  releaseWake();
   $("call").classList.remove("on"); $("vRemote").srcObject = null; $("vLocal").srcObject = null; stopRing();
   if (notify) { try { await updateDoc(K(c.id), { state: "ended" }); } catch (_) {} }
   purge(c.id);
@@ -2688,16 +2737,17 @@ function playRing(){
     const beep = () => {
       if (!ringCtx) return;
       const o = ringCtx.createOscillator(), g = ringCtx.createGain();
-      o.type = "sine"; o.frequency.value = 540; o.connect(g); g.connect(ringCtx.destination);
+      o.type = "sine"; o.frequency.value = 480; o.connect(g); g.connect(ringCtx.destination);
+      const o2 = ringCtx.createOscillator(); o2.type = "sine"; o2.frequency.value = 620; o2.connect(g);
       const t = ringCtx.currentTime;
       g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.16, t + 0.04); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
-      o.start(t); o.stop(t + 0.6);
+      o.start(t); o2.start(t); o.stop(t + 0.55); o2.stop(t + 0.55);
     };
     beep(); ringInt = setInterval(beep, 1500);
   } catch (_) {}
-  try { if (navigator.vibrate) navigator.vibrate([500, 400, 500, 400, 500]); } catch (_) {}
+  try { if (navigator.vibrate) { navigator.vibrate([600, 500, 600, 500, 600]); window.__vib = setInterval(() => navigator.vibrate([600, 500, 600, 500, 600]), 2800); } } catch (_) {}
 }
-function stopRing(){ clearInterval(ringInt); ringInt = null; try { if (ringCtx) ringCtx.close(); } catch (_) {} ringCtx = null; try { if (navigator.vibrate) navigator.vibrate(0); } catch (_) {} }
+function stopRing(){ clearInterval(ringInt); ringInt = null; try { clearInterval(window.__vib); } catch (_) {} try { if (ringCtx) ringCtx.close(); } catch (_) {} ringCtx = null; try { if (navigator.vibrate) navigator.vibrate(0); } catch (_) {} }
 
 /* ============ МЕНЮ ЧАТА (⋮) ============ */
 $("menu").onclick = () => {
