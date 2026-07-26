@@ -17,6 +17,17 @@ try {
     const messaging = firebase.messaging();
     messaging.onBackgroundMessage((p) => {
       const d = (p && p.data) || {};
+      if (d.type === "call") {
+        self.registration.showNotification(d.title || "Kwora", {
+          body: d.body || "Входящий звонок",
+          icon: "./icon-192.png", badge: "./icon-192.png",
+          tag: "kwora-call", renotify: true, requireInteraction: true,
+          vibrate: [600, 400, 600, 400, 600, 400, 600],
+          actions: [{ action: "answer", title: "Ответить" }, { action: "decline", title: "Отклонить" }],
+          data: { url: d.url || "./", type: "call", callId: d.callId || "" }
+        });
+        return;
+      }
       self.registration.showNotification(d.title || "Kwora", {
         body: d.body || "",
         icon: "./icon-192.png",
@@ -29,7 +40,16 @@ try {
 
 self.addEventListener("notificationclick", (e) => {
   e.notification.close();
-  const url = (e.notification.data && e.notification.data.url) || "./";
+  const __d = e.notification.data || {};
+  if (__d.type === "call") {
+    e.waitUntil(clients.matchAll({ type: "window", includeUncontrolled: true }).then((ws) => {
+      for (const w of ws) { if ("focus" in w) { try { w.postMessage({ kw: "call", callId: __d.callId || "", act: e.action || "answer" }); } catch (_) {} return w.focus(); } }
+      const u = (__d.url || "./") + ((__d.url || "./").indexOf("?") < 0 ? "?" : "&") + "call=" + encodeURIComponent(__d.callId || "") + "&act=" + (e.action === "decline" ? "decline" : "answer");
+      return clients.openWindow(u);
+    }));
+    return;
+  }
+  const url = __d.url || "./";
   e.waitUntil(clients.matchAll({ type: "window", includeUncontrolled: true }).then((ws) => {
     for (const w of ws) { if ("focus" in w) return w.focus(); }
     return clients.openWindow(url);
