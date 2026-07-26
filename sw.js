@@ -43,8 +43,8 @@ self.addEventListener("notificationclick", (e) => {
   const __d = e.notification.data || {};
   if (__d.type === "call") {
     e.waitUntil(clients.matchAll({ type: "window", includeUncontrolled: true }).then((ws) => {
-      for (const w of ws) { if ("focus" in w) { try { w.postMessage({ kw: "call", callId: __d.callId || "", act: e.action || "answer" }); } catch (_) {} return w.focus(); } }
-      const u = (__d.url || "./") + ((__d.url || "./").indexOf("?") < 0 ? "?" : "&") + "call=" + encodeURIComponent(__d.callId || "") + "&act=" + (e.action === "decline" ? "decline" : "answer");
+      for (const w of ws) { if ("focus" in w) { try { w.postMessage({ kw: "call", callId: __d.callId || "", act: e.action || "open" }); } catch (_) {} return w.focus(); } }
+      const u = (__d.url || "./") + ((__d.url || "./").indexOf("?") < 0 ? "?" : "&") + "call=" + encodeURIComponent(__d.callId || "") + "&act=" + (e.action === "decline" ? "decline" : (e.action === "answer" ? "answer" : "open"));
       return clients.openWindow(u);
     }));
     return;
