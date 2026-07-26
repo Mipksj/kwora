@@ -1,4 +1,4 @@
-90<!doctype html>
+<!doctype html>
 <html lang="ru">
 <head>
 <meta charset="utf-8" />
@@ -516,6 +516,21 @@ img{display:block;max-width:100%}
 <input type="file" id="pickBadge" accept="image/*" class="hide">
 
 <script>
+/* АВАРИЙНАЯ ОЧИСТКА: снять все service worker и кэши, если ?nocache или всегда при этой версии */
+(function(){
+  try {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(rs){
+        rs.forEach(function(r){ r.unregister(); });
+      });
+    }
+    if (window.caches && caches.keys) {
+      caches.keys().then(function(ks){ ks.forEach(function(k){ caches.delete(k); }); });
+    }
+  } catch(e){}
+})();
+</script>
+<script>
 window.__lastErr = "";
 window.addEventListener("error", function (e) {
   if (e && e.target && (e.target.tagName === "SCRIPT" || e.target.tagName === "LINK")) {
@@ -566,12 +581,19 @@ window.addEventListener("unhandledrejection", function (e) {
 
 
 
+if (window.__mark) __mark("модуль-стартовал");
+function __imp(name, file) {
+  return Promise.race([
+    import(file),
+    new Promise((_, rej) => setTimeout(() => rej(new Error("таймаут " + file)), 12000))
+  ]).then(m => { if (window.__mark) __mark("загружен:" + name); return m; });
+}
 let __fb = {};
 try {
-  __fb.app = await import("./firebase-app.js");
-  __fb.auth = await import("./firebase-auth.js");
-  __fb.functions = await import("./firebase-functions.js");
-  __fb.firestore = await import("./firebase-firestore.js");
+  __fb.app = await __imp("app", "./firebase-app.js");
+  __fb.auth = await __imp("auth", "./firebase-auth.js");
+  __fb.functions = await __imp("functions", "./firebase-functions.js");
+  __fb.firestore = await __imp("firestore", "./firebase-firestore.js");
 } catch (e) {
   window.__lastErr = "ИМПОРТ: " + (e && e.message ? e.message : e);
   document.body.insertAdjacentHTML("beforeend", '<div style="position:fixed;left:8px;right:8px;top:8px;z-index:99999;background:#B3261E;color:#fff;padding:10px;border-radius:12px;font:13px monospace;word-break:break-word">' + window.__lastErr + "</div>");
@@ -1543,25 +1565,4 @@ function drawPeople(){
   }
 
   const fr = [...friends];
-  box.append(el("div", "cap", fr.length ? T("capFriends") + " · " + fr.length : T("capFriends")));
-  if (!fr.length) box.append(el("div", "blank", T("noFriends")));
-  for (const uid of fr) {
-    const p = cache.get(uid);
-    if (!p) { profile(uid).then(() => { if (tab === "people") drawPeople(); }); continue; }
-    const row = el("button", "item");
-    row.append(ava(p, 46));
-    const mid = el("div", "grow");
-    const t1 = el("div", "t1 ell");
-    t1.append(el("span", "ell", p.name || p.nick));
-    if (p.verified) t1.append(tick());
-    mid.append(t1);
-    mid.append(el("div", "t2 mono ell", "@" + p.nick));
-    row.append(mid);
-    row.onclick = () => openProfile(uid);
-    box.append(row);
-  }
-
-  if (blocks.size) {
-    box.append(el("div", "cap", T("capBlocked")));
-    for (const uid of blocks) {
-      const p =
+  box.append(el("div", "cap", f
