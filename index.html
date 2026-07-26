@@ -535,12 +535,19 @@ window.addEventListener("error", function (e) {
     window.__lastErr = (e.message || "") + " @" + ((e.filename||"").split("/").pop()) + ":" + (e.lineno||"");
     var d = document.createElement("div");
     d.style.cssText = "position:fixed;left:8px;right:8px;top:8px;z-index:99999;background:#B3261E;color:#fff;padding:10px 12px;border-radius:12px;font:13px/1.4 monospace;word-break:break-word;white-space:pre-wrap";
-    d.textContent = "v43 | JS: " + (e.message || "") + "\n" + ((e.filename||"").split("/").pop()) + ":" + (e.lineno||"");
+    d.textContent = "v45 | JS: " + (e.message || "") + "\n" + ((e.filename||"").split("/").pop()) + ":" + (e.lineno||"");
     document.body.appendChild(d);
   } catch (_) {}
 });
 window.__diag = [];
 window.__mark = function (m) { window.__diag.push(m); };
+setTimeout(function () {
+  if (document.querySelector("#app.on, .shell.on, [data-ready]")) return;
+  var d = document.createElement("div");
+  d.style.cssText = "position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;background:#8a6d00;color:#fff;padding:10px 12px;border-radius:12px;font:12px/1.4 monospace;white-space:pre-wrap;word-break:break-word";
+  d.textContent = "v45 этапы: " + (window.__diag.join(" -> ") || "(пусто)") + (window.__lastErr ? ("\nОШИБКА: " + window.__lastErr) : "");
+  document.body.appendChild(d);
+}, 6000);
 
 window.addEventListener("unhandledrejection", function (e) {
   try {
@@ -548,7 +555,7 @@ window.addEventListener("unhandledrejection", function (e) {
     d.style.cssText = "position:fixed;left:8px;right:8px;top:8px;z-index:99999;background:#B3261E;color:#fff;padding:10px 12px;border-radius:12px;font:13px/1.4 monospace;word-break:break-word;white-space:pre-wrap";
     var r = e.reason || {};
     window.__lastErr = "PROMISE: " + (r.message || String(r)).slice(0, 200);
-    d.textContent = "v43 | PROMISE: " + (r.message || String(r)).slice(0, 300);
+    d.textContent = "v45 | PROMISE: " + (r.message || String(r)).slice(0, 300);
     document.body.appendChild(d);
   } catch (_) {}
 });
@@ -1557,14 +1564,4 @@ function drawPeople(){
   if (blocks.size) {
     box.append(el("div", "cap", T("capBlocked")));
     for (const uid of blocks) {
-      const p = cache.get(uid);
-      if (!p) { profile(uid).then(() => { if (tab === "people") drawPeople(); }); continue; }
-      const row = el("div", "item");
-      row.append(ava(p, 46));
-      const mid = el("div", "grow");
-      mid.append(el("div", "t1 ell", p.name || p.nick));
-      mid.append(el("div", "t2 mono ell", "@" + p.nick));
-      row.append(mid);
-      const b = el("button", "pill", T("unblock"));
-      b.onclick = () => deleteDoc(doc(db, "users", me.uid, "blocked", uid)).catch(e => toast(say(e)));
-      row.append(b); box.appe
+      const p =
