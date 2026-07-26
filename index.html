@@ -576,6 +576,8 @@ window.addEventListener("unhandledrejection", function (e) {
 });
 </script>
 <script type="module">
+if (window.__mark) __mark("СТРОКА-1"); else window.__diag = ["СТРОКА-1-без-mark"];
+
 
 
 
@@ -1560,9 +1562,4 @@ function drawPeople(){
       row.append(mid);
       const y = el("button", "pill on", T("accept")); y.onclick = () => accept(p);
       const n = el("button", "pill", "Нет"); n.onclick = () => deleteDoc(doc(db, "users", me.uid, "requests", p.uid)).catch(e => toast(say(e)));
-      row.append(y, n); box.append(row);
-    }
-  }
-
-  const fr = [...friends];
-  box.append(el("div", "cap", f
+      row.append(y, n); bo
