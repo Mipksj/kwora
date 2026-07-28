@@ -184,6 +184,22 @@ img{display:block;max-width:100%}
 #reBar .rb-t{font-size:12px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #reBar button{color:var(--dim);font-size:17px;padding:4px 8px}
 .edited{font-size:10px;opacity:.65;margin-right:4px}
+.recbar{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--s1);border-top:1px solid var(--line)}
+.recbar .rdot{width:12px;height:12px;border-radius:50%;background:#F23F43;animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.25}}
+.recbar .rtime{font-family:"JetBrains Mono",monospace;font-size:15px;min-width:44px}
+.recbar .grow{flex:1}
+.recbar button{padding:8px 14px;border-radius:999px;font-size:14px}
+.recbar .rsend{background:var(--grad);color:#fff}
+.voice{display:flex;align-items:center;gap:10px;min-width:180px}
+.voice .vplay{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.18);display:grid;place-items:center;flex:none;border:0;color:inherit}
+.bub.them .voice .vplay{background:var(--s3)}
+.voice .vbar{flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,.28);position:relative;overflow:hidden}
+.voice .vfill{position:absolute;inset:0 100% 0 0;background:#fff;border-radius:2px}
+.bub.them .voice .vbar{background:rgba(255,255,255,.15)}
+.bub.them .voice .vfill{background:#9db4ff}
+.voice .vdur{font-size:12px;opacity:.8;font-family:"JetBrains Mono",monospace}
+.bub video{border-radius:15px;max-height:340px;max-width:100%;display:block;background:#000}
 .imgdots{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:grid;place-items:center;z-index:2;border:0}
 .bub.pic{position:relative}
 .light-bar{position:fixed;top:calc(10px + env(safe-area-inset-top));right:12px;display:flex;gap:10px;z-index:210}
@@ -543,6 +559,7 @@ body.in-chat .tabs{display:none}
 
 <input type="file" id="pickAva" accept="image/*" class="hide">
 <input type="file" id="pickBnr" accept="image/*" class="hide">
+<input type="file" id="pickVid" accept="video/*" class="hide">
 <input type="file" id="pickImg" accept="image/*" class="hide">
 <input type="file" id="pickGrp" accept="image/*" class="hide">
 <input type="file" id="pickBadge" accept="image/*" class="hide">
@@ -618,6 +635,8 @@ const { getFirestore,initializeFirestore,doc,setDoc,getDoc,getDocs,deleteDoc,upd
 
 let __msg = null;
 try { __msg = await import("./firebase-messaging.js"); } catch (_) {}
+let __sto = null;
+try { __sto = await import("./firebase-storage.js"); } catch (_) {}
 
 const cfg = {
   apiKey: "AIzaSyCkp9-fJ30nYnDe0H0QsUVXlUeicw6hcEM",
@@ -2061,6 +2080,18 @@ function drawMsgs(list){
       cc.append(mm);
       cc.onclick = ev => { ev.stopPropagation(); openProfile(m.contact.uid); };
       b.append(cc);
+    } else if (m.voice) {
+      const v = el("div", "voice");
+      const pb = el("button", "vplay"); pb.innerHTML = VICON.play;
+      const vb = el("div", "vbar"); const vf = el("div", "vfill"); vb.append(vf);
+      const vd = el("span", "vdur", fmtDur(m.vdur || 0));
+      pb.onclick = ev => { ev.stopPropagation(); playVoice(m, vf, pb); };
+      v.append(pb, vb, vd); b.append(v);
+    } else if (m.video) {
+      const vid = document.createElement("video");
+      vid.controls = true; vid.preload = "metadata"; vid.src = m.video; vid.playsInline = true;
+      vid.onclick = ev => ev.stopPropagation();
+      b.append(vid);
     } else if (m.text) renderRich(b, m.text);
     const ts = el("span", "ts", hhmm(m.at));
     if (m.edited) ts.prepend(el("span", "edited", "изм."));
@@ -2173,6 +2204,8 @@ $("clip").onclick = () => {
   mk(T("photo"), () => $("pickImg").click(), im(ICONS.img));
   mk(T("poll"), pollDialog, im(ICONS.poll));
   mk(T("contactW"), contactPick, '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>');
+  mk("Видео", () => $("pickVid").click(), '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><rect x="2.5" y="6" width="12" height="12" rx="3"/><path d="M14.5 10.5l6-3v9l-6-3z"/></svg>');
+  mk("Голосовое", startVoiceRec, '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>');
   const c = el("button", null, T("cancel")); c.onclick = hideSheet; b.append(c);
   showSheet();
 };
@@ -2251,6 +2284,120 @@ $("pickImg").onchange = async e => {
   toast("Готовлю фото…");
   try { await post(await shrink(f, 1280, 380000)); } catch (_) { toast("Не получилось прочитать картинку"); }
 };
+/* ============ ГОЛОСОВЫЕ ============ */
+let recState = null; // { rec, chunks, t0, timer, stream }
+
+function fmtDur(sec){ const m = Math.floor(sec / 60), s2 = Math.floor(sec % 60); return m + ":" + String(s2).padStart(2, "0"); }
+
+async function startVoiceRec(){
+  if (!active || recState) return;
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  catch (_) { toast("Микрофон недоступен"); return; }
+  const mime = (window.MediaRecorder && MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) ? "audio/webm;codecs=opus"
+    : (MediaRecorder.isTypeSupported("audio/mp4") ? "audio/mp4" : "");
+  let rec;
+  try { rec = new MediaRecorder(stream, mime ? { mimeType: mime, audioBitsPerSecond: 24000 } : undefined); }
+  catch (_) { toast("Запись не поддерживается"); stream.getTracks().forEach(t => t.stop()); return; }
+  const chunks = [];
+  rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+  recState = { rec, chunks, t0: Date.now(), timer: null, stream, mime: mime || "audio/webm" };
+  rec.start(250);
+
+  const bar = el("div", "recbar"); bar.id = "recBar";
+  bar.append(el("div", "rdot"));
+  const tm = el("div", "rtime", "0:00"); bar.append(tm);
+  bar.append(el("div", "grow"));
+  const cx = el("button", null, "Отмена");
+  cx.onclick = () => stopVoiceRec(false);
+  const snd = el("button", "rsend", "Отправить");
+  snd.onclick = () => stopVoiceRec(true);
+  bar.append(cx, snd);
+  const comp = $("comp");
+  comp.style.display = "none";
+  comp.parentElement.insertBefore(bar, comp);
+
+  recState.timer = setInterval(() => {
+    const sec = (Date.now() - recState.t0) / 1000;
+    tm.textContent = fmtDur(sec);
+    if (sec >= 60) stopVoiceRec(true);
+  }, 250);
+}
+
+function stopVoiceRec(send){
+  const st = recState; if (!st) return;
+  recState = null;
+  clearInterval(st.timer);
+  const dur = Math.min(60, (Date.now() - st.t0) / 1000);
+  st.rec.onstop = async () => {
+    st.stream.getTracks().forEach(t => t.stop());
+    const bar = $("recBar"); if (bar) bar.remove();
+    $("comp").style.display = "";
+    if (!send || dur < 1) return;
+    const blob = new Blob(st.chunks, { type: st.mime });
+    if (blob.size > 750000) { toast("Слишком длинное голосовое"); return; }
+    const data = await new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(blob); });
+    try {
+      await addDoc(collection(db, "chats", active.id, "messages"), { from: me.uid, voice: data, vdur: Math.round(dur), at: serverTimestamp() });
+      await updateDoc(C(active.id), { lastText: "Голосовое", lastAt: serverTimestamp(), lastFrom: me.uid });
+    } catch (e) { toast(say(e)); }
+  };
+  try { st.rec.stop(); } catch (_) { st.rec.onstop(); }
+}
+
+let voiceAudio = null, voiceMid = null, voiceTick = null;
+function playVoice(m, fill, btn){
+  if (voiceAudio && voiceMid === m.id) {
+    if (voiceAudio.paused) { voiceAudio.play(); btn.innerHTML = VICON.pause; }
+    else { voiceAudio.pause(); btn.innerHTML = VICON.play; }
+    return;
+  }
+  if (voiceAudio) { try { voiceAudio.pause(); } catch (_) {} clearInterval(voiceTick); }
+  voiceAudio = new Audio(m.voice); voiceMid = m.id;
+  voiceAudio.play().catch(() => toast("Не удалось воспроизвести"));
+  btn.innerHTML = VICON.pause;
+  voiceTick = setInterval(() => {
+    if (!voiceAudio) return;
+    const d = voiceAudio.duration || m.vdur || 1;
+    const k = Math.min(1, voiceAudio.currentTime / d);
+    fill.style.right = (100 - k * 100) + "%";
+    if (voiceAudio.ended) { clearInterval(voiceTick); btn.innerHTML = VICON.play; fill.style.right = "100%"; voiceMid = null; }
+  }, 120);
+}
+const VICON = {
+  play: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5z"/></svg>',
+  pause: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4.5" width="4" height="15" rx="1.2"/><rect x="14" y="4.5" width="4" height="15" rx="1.2"/></svg>'
+};
+
+/* ============ ВИДЕО (Firebase Storage) ============ */
+$("pickVid").onchange = async e => {
+  const f = e.target.files && e.target.files[0]; e.target.value = "";
+  if (!f || !active) return;
+  if (!__sto) { toast("Хранилище видео ещё не подключено (файл firebase-storage.js)"); return; }
+  if (f.size > 25 * 1024 * 1024) { toast("Видео больше 25 МБ"); return; }
+  const t = toastStay("Загрузка видео… 0%");
+  try {
+    const st = __sto.getStorage(fb);
+    const path = "vids/" + active.id + "/" + Date.now() + "-" + (f.name || "v.mp4").replace(/[^\w.\-]/g, "_");
+    const rf = __sto.ref(st, path);
+    const task = __sto.uploadBytesResumable(rf, f, { contentType: f.type || "video/mp4" });
+    await new Promise((res, rej) => {
+      task.on("state_changed",
+        sn => { t.textContent = "Загрузка видео… " + Math.round(sn.bytesTransferred / sn.totalBytes * 100) + "%"; },
+        rej, res);
+    });
+    const url = await __sto.getDownloadURL(rf);
+    await addDoc(collection(db, "chats", active.id, "messages"), { from: me.uid, video: url, at: serverTimestamp() });
+    await updateDoc(C(active.id), { lastText: "Видео", lastAt: serverTimestamp(), lastFrom: me.uid });
+    t.remove();
+  } catch (err) { t.remove(); toast(say(err)); }
+};
+function toastStay(txt){
+  const d = el("div"); d.textContent = txt;
+  d.style.cssText = "position:fixed;left:50%;transform:translateX(-50%);bottom:104px;z-index:200;background:var(--s1);border:1px solid var(--line);padding:9px 16px;border-radius:12px;font-size:13px";
+  document.body.append(d); return d;
+}
+
 let replyRe = null;   // { id, n, t }
 let editingId = null;
 
