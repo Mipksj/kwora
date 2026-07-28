@@ -1,7 +1,7 @@
 /* Kwora SW v3: запас firebase-файлов + фоновые пуш-уведомления */
-const CACHE = "kwora-v3";
+const CACHE = "kwora-v4";
 const FB = ["firebase-app.js","firebase-auth.js","firebase-firestore.js","firebase-functions.js",
-            "firebase-messaging.js","firebase-app-compat.js","firebase-messaging-compat.js"];
+            "firebase-messaging.js","firebase-storage.js","firebase-app-compat.js","firebase-messaging-compat.js"];
 
 try {
   importScripts("./firebase-app-compat.js", "./firebase-messaging-compat.js");
