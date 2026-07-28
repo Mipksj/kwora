@@ -1356,6 +1356,10 @@ function stopAll(){
 async function start(p){
   if (window.__mark) __mark("старт-профиля");
   setTimeout(pushSetup, 1500);
+  setTimeout(function beat(){
+    if (me && document.visibilityState === "visible") updateDoc(U(me.uid), { lastSeen: Date.now() }).catch(() => {});
+    setTimeout(beat, 60000);
+  }, 2000);
   me = p; cache.set(me.uid, me);
   $("auth").classList.add("hide"); $("splash").classList.add("hide"); $("app").classList.remove("hide"); $("go").disabled = false;
 
@@ -2167,15 +2171,36 @@ async function openProfile(uid){
   }
   sp.append(bnr);
   const h = el("div", "pf-head");
-  h.append(ava(p, 84));
+  const aw = el("div"); aw.style.cssText = "position:relative;width:max-content";
+  aw.append(ava(p, 84));
+  if (p.lastSeen && Date.now() - p.lastSeen < 150000) {
+    const dt = el("div"); dt.style.cssText = "position:absolute;right:4px;bottom:4px;width:18px;height:18px;border-radius:50%;background:#23A55A;border:4px solid var(--s1)";
+    aw.append(dt);
+  }
+  h.append(aw);
   const nm = el("div", "pf-name");
   nm.append(el("span", null, p.name || p.nick));
   if (p.verified) nm.append(tick());
   nm.append(miniBadges(p.badges));
   h.append(nm);
   h.append(el("div", "pf-nick", "@" + p.nick));
+  if (p.status) {
+    const st = el("div", null, p.status);
+    st.style.cssText = "margin-top:6px;font-size:13px;color:var(--dim);font-style:italic";
+    h.append(st);
+  }
   if (p.bio) { const bio = el("div", null, p.bio); bio.style.cssText = "margin-top:8px;font-size:14px;color:var(--tx)"; h.append(bio); }
   sp.append(h);
+
+  if (p.createdAt) {
+    const since = el("div", "pf-sec");
+    since.append(el("div", "cap", "В Kwora с"));
+    const dcard = el("div", "card");
+    const dl = el("div", "line");
+    const cts = (p.createdAt && p.createdAt.toMillis) ? p.createdAt.toMillis() : p.createdAt;
+    dl.append(el("div", null, new Date(cts).toLocaleDateString("ru-RU", { day: "numeric", month: "short", year: "numeric" })));
+    dcard.append(dl); since.append(dcard); sp.append(since);
+  }
 
   const shown = (p.badges || []).map(id => badgeCat.find(b => b.id === id)).filter(Boolean);
   if (shown.length) {
@@ -3023,7 +3048,11 @@ function drawMe(){
   const lb = el("div", "line"); lb.append(el("div", "k", T("fAbout")));
   const bi = document.createElement("input"); bi.value = me.bio || ""; bi.maxLength = 120; bi.placeholder = T("fAboutPh"); bi.style.textAlign = "right";
   bi.onblur = async () => { const v = bi.value.trim().slice(0, 120); if (v === (me.bio || "")) return; try { await updateDoc(U(me.uid), { bio: v }); toast(T("updated")); } catch (e) { toast(say(e)); } };
-  lb.append(bi); c1.append(lb);
+  const l4s = el("div", "line"); l4s.append(el("div", "k", "Статус"));
+  const si = document.createElement("input"); si.value = me.status || ""; si.maxLength = 60; si.placeholder = "Чем занимаешься?"; si.style.textAlign = "right";
+  si.onblur = async () => { const v = si.value.trim().slice(0, 60); if (v === (me.status || "")) return; try { await updateDoc(U(me.uid), { status: v }); toast(T("updated")); } catch (e) { toast(say(e)); } };
+  l4s.append(si);
+  lb.append(bi); c1.append(lb); c1.append(l4s);
   const l2 = el("div", "line"); l2.append(el("div", "k", T("fNick"))); const nk = el("div", "grow mono", "@" + me.nick); nk.style.textAlign = "right"; l2.append(nk); c1.append(l2);
   box.append(c1);
 
@@ -3290,7 +3319,7 @@ function uploadBadge(){
   prev.append(box); d.append(prev);
   let imgData = "";
   const pb = $("pickBadge");
-  const pick = () => { pb.onchange = async e => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (!f) return; try { imgData = await shrink(f, 128, 60000); box.replaceChildren(); const im = document.createElement("img"); im.src = imgData; im.style.cssText = "width:100%;height:100%;object-fit:cover"; box.append(im); } catch (err) { toast(say(err)); } }; pb.click(); };
+  const pick = () => { pb.onchange = async e => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (!f) return; try { imgData = await cropImage(f, { round: true, aspect: 1, out: 128, budget: 60000 }); if (!imgData) return; box.replaceChildren(); const im = document.createElement("img"); im.src = imgData; im.style.cssText = "width:100%;height:100%;object-fit:cover"; box.append(im); } catch (err) { toast(say(err)); } }; pb.click(); };
   box.onclick = pick;
 
   const b1 = el("div", "inp"); const nm = document.createElement("input"); nm.placeholder = "Название значка"; nm.maxLength = 24; b1.append(nm); d.append(b1);
