@@ -592,11 +592,9 @@ window.__diag = [];
 window.__mark = function (m) { window.__diag.push(m); };
 setTimeout(function () {
   try {
-    var app = document.getElementById("app");
-    if (app && getComputedStyle(app).display !== "none") return;
     var d = document.createElement("div");
     d.style.cssText = "position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;background:#8a6d00;color:#fff;padding:10px 12px;border-radius:12px;font:12px/1.4 monospace;white-space:pre-wrap;word-break:break-word";
-    d.textContent = "v46 этапы: " + (window.__diag.join(" -> ") || "(пусто)") + (window.__lastErr ? ("\nОШИБКА: " + window.__lastErr) : "");
+    d.textContent = "v48 этапы: " + (window.__diag.join(" -> ") || "(пусто)") + (window.__lastErr ? ("\nОШИБКА: " + window.__lastErr) : "");
     document.body.appendChild(d);
   } catch (e) {}
 }, 7000);
@@ -1395,11 +1393,18 @@ onAuthStateChanged(auth, async u => {
   $("splash").classList.add("hide");
   if (!u) { stopAll(); return; }
   try {
+    if (window.__mark) __mark("профиль-запрошен");
     const s = await getDoc(U(u.uid));
+    if (window.__mark) __mark("профиль-получен");
     if (!s.exists()) { await signOut(auth); $("note").textContent = "Профиль не найден."; return; }
     if (s.data().banned) { await signOut(auth); $("note").textContent = "Этот аккаунт заблокирован."; return; }
+    if (window.__mark) __mark("старт()");
     start(s.data());
-  } catch (e) { stopAll(); }
+  } catch (e) {
+    window.__lastErr = "СТАРТ: " + ((e && e.message) || e);
+    if (window.__mark) __mark("ОШИБКА-старта");
+    stopAll();
+  }
 });
 
 function stopAll(){
