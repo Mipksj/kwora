@@ -184,6 +184,14 @@ img{display:block;max-width:100%}
 #reBar .rb-t{font-size:12px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #reBar button{color:var(--dim);font-size:17px;padding:4px 8px}
 .edited{font-size:10px;opacity:.65;margin-right:4px}
+.imgdots{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:grid;place-items:center;z-index:2;border:0}
+.bub.pic{position:relative}
+.light-bar{position:fixed;top:calc(10px + env(safe-area-inset-top));right:12px;display:flex;gap:10px;z-index:210}
+.light-bar button{width:42px;height:42px;border-radius:50%;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.15);color:#fff;display:grid;place-items:center}
+.tour-hole{position:fixed;z-index:300;border-radius:50%;box-shadow:0 0 0 9999px rgba(5,6,10,.82);pointer-events:none;transition:all .25s ease}
+.tour-tip{position:fixed;z-index:301;max-width:280px;background:var(--s1);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:13px 15px;font-size:14px;line-height:1.45;box-shadow:0 12px 40px rgba(0,0,0,.55)}
+.tour-btns{display:flex;gap:8px;margin-top:11px}
+.tour-btns .pill{flex:1}
 .emo-row{display:flex;justify-content:space-around;padding:4px 6px 10px}
 .emo-row button{font-size:26px;padding:6px 8px;border-radius:12px}
 .emo-row button:active{background:var(--s2)}
@@ -497,7 +505,13 @@ body.in-chat .tabs{display:none}
   </section>
 </div>
 
-<div id="light"><img id="lightImg" alt=""></div>
+<div id="light">
+  <div class="light-bar">
+    <button id="lightDl" title="Скачать"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M6 11l6 6 6-6"/><path d="M4 21h16"/></svg></button>
+    <button id="lightDots" title="Ещё"><svg width="19" height="19" viewBox="0 0 24 24" fill="#fff"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></button>
+  </div>
+  <img id="lightImg" alt="">
+</div>
 
 <div id="gcall" class="hide">
     <div class="gc-grid" id="gcGrid"></div>
@@ -1381,6 +1395,7 @@ function stopAll(){
 async function start(p){
   if (window.__mark) __mark("старт-профиля");
   setTimeout(pushSetup, 1500);
+  setTimeout(tourMain, 1200);
   setTimeout(function beat(){
     if (me && document.visibilityState === "visible") updateDoc(U(me.uid), { lastSeen: Date.now() }).catch(() => {});
     setTimeout(beat, 60000);
@@ -1806,6 +1821,7 @@ function paint(){
   $("chatBox").classList.remove("hide");
   $("chat").classList.add("on");
   document.body.classList.add("in-chat");
+  setTimeout(tourChat, 700);
   $("msgs").replaceChildren();
   head(); gate();
 }
@@ -2007,8 +2023,12 @@ function drawMsgs(list){
     }
     if (m.img) {
       const im = document.createElement("img"); im.src = m.img; im.alt = "";
-      im.onclick = ev => { ev.stopPropagation(); $("lightImg").src = m.img; $("light").classList.add("on"); };
+      im.onclick = ev => { ev.stopPropagation(); window.__lightM = { m, mine, canDel: mine || (grp && (myPerms().del || active.chat.owner === me.uid)) }; $("lightImg").src = m.img; $("light").classList.add("on"); };
       b.append(im);
+      const dots = el("button", "imgdots");
+      dots.innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="#fff"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>';
+      dots.onclick = ev => { ev.stopPropagation(); msgMenu(m, mine, mine || (grp && (myPerms().del || active.chat.owner === me.uid))); };
+      b.append(dots);
       if (m.text) b.append(el("div", "cap-t", m.text));
     } else if (m.poll) {
       b.append(el("div", "pq", m.poll.q));
@@ -2280,6 +2300,21 @@ async function post(img){
   }
 }
 $("light").onclick = () => $("light").classList.remove("on");
+$("lightDl").onclick = ev => {
+  ev.stopPropagation();
+  const src = $("lightImg").src;
+  if (!src) return;
+  const a = document.createElement("a");
+  a.href = src; a.download = "kwora-" + Date.now() + ".jpg";
+  document.body.append(a); a.click(); a.remove();
+};
+$("lightDots").onclick = ev => {
+  ev.stopPropagation();
+  const L = window.__lightM;
+  if (!L) return;
+  $("light").classList.remove("on");
+  msgMenu(L.m, L.mine, L.canDel);
+};
 
 /* ============ ПРОФИЛЬ-КАРТОЧКА (человек) ============ */
 const SP = () => $("sheetProfile");
@@ -2802,6 +2837,77 @@ navigator.serviceWorker && navigator.serviceWorker.addEventListener("message", (
     }
   } catch (_) {}
 })();
+
+/* ============ ОБУЧЕНИЕ (spotlight-тур) ============ */
+let __tourActive = false;
+function runTour(steps, doneKey){
+  if (__tourActive || localStorage.getItem(doneKey)) return;
+  const list = steps.filter(st => document.querySelector(st.sel));
+  if (!list.length) { localStorage.setItem(doneKey, "1"); return; }
+  __tourActive = true;
+  let i = 0;
+  const hole = el("div", "tour-hole");
+  const tip = el("div", "tour-tip");
+  document.body.append(hole, tip);
+  function finish(){
+    __tourActive = false;
+    localStorage.setItem(doneKey, "1");
+    hole.remove(); tip.remove();
+  }
+  function show(){
+    if (i >= list.length) { finish(); return; }
+    const st = list[i];
+    const elx = document.querySelector(st.sel);
+    if (!elx) { i++; show(); return; }
+    const r = elx.getBoundingClientRect();
+    const pad = 10;
+    const size = Math.max(r.width, r.height) + pad * 2;
+    hole.style.width = size + "px";
+    hole.style.height = size + "px";
+    hole.style.left = (r.left + r.width / 2 - size / 2) + "px";
+    hole.style.top = (r.top + r.height / 2 - size / 2) + "px";
+    tip.replaceChildren();
+    tip.append(el("div", null, st.text));
+    const btns = el("div", "tour-btns");
+    const skip = el("button", "pill", "Завершить");
+    skip.onclick = finish;
+    const next = el("button", "pill on", i === list.length - 1 ? "Готово" : "Далее");
+    next.onclick = () => { i++; show(); };
+    btns.append(skip, next); tip.append(btns);
+    // позиция подписи: под кружком, либо над, если не влезает
+    requestAnimationFrame(() => {
+      const th = tip.offsetHeight, tw = Math.min(280, window.innerWidth - 24);
+      let top = r.bottom + pad + 14;
+      if (top + th > window.innerHeight - 12) top = r.top - pad - th - 14;
+      let left = r.left + r.width / 2 - tw / 2;
+      left = Math.max(12, Math.min(left, window.innerWidth - tw - 12));
+      tip.style.top = Math.max(12, top) + "px";
+      tip.style.left = left + "px";
+      tip.style.width = tw + "px";
+    });
+  }
+  show();
+}
+
+function tourMain(){
+  runTour([
+    { sel: "#btnPlus", text: "Кнопка «+» — начни отсюда: найти человека по нику, создать группу или бота." },
+    { sel: "#iFind", text: "Поиск по нику: введи @ник друга — и сразу открывай чат." },
+    { sel: "#tChats", text: "Чаты — все твои переписки, группы и боты живут здесь." },
+    { sel: "#tPeople", text: "Люди — друзья, заявки и приглашения." },
+    { sel: "#tBots", text: "Боты — создавай своих ботов и управляй ими." },
+    { sel: "#tMe", text: "Профиль — аватар, баннер, статус, язык и настройки." }
+  ], "kwTourMain");
+}
+
+function tourChat(){
+  runTour([
+    { sel: "#clip", text: "Скрепка — отправить картинку, опрос или контакт." },
+    { sel: "#iMsg", text: "Поле сообщения. Подсказка: @ник — упомянуть человека." },
+    { sel: "#send", text: "Отправка. А если тапнуть по любому сообщению — реакции, ответ и изменение." },
+    { sel: "#callA", text: "Звонок другу — обычный или видео." }
+  ], "kwTourChat");
+}
 
 async function pushSetup(){
   if (!me) { setTimeout(pushSetup, 2000); return; }
