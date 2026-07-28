@@ -114,7 +114,7 @@ img{display:block;max-width:100%}
 .iconbtn:hover{background:var(--s3)}
 .searchbar{padding:11px 15px;flex:none}
 .searchbar .inp{margin:0;background:var(--s1)}
-.body{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:14px}
+.body{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:96px}
 .view{display:none;flex-direction:column;flex:1;min-height:0;overflow:hidden}
 .view.on{display:flex}
 
@@ -133,11 +133,11 @@ img{display:block;max-width:100%}
 .ava.grp{border-radius:32%}
 .tick{width:15px;height:15px;flex:none}
 
-.tabs{display:flex;flex:none;border-top:1px solid var(--line);background:rgba(20,22,28,.9);padding-bottom:env(safe-area-inset-bottom)}
-.tabs button{flex:1;padding:9px 0 10px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--dim);font-size:11px;font-weight:500;position:relative}
-.tabs button.on{color:var(--tx)}
+.tabs{display:flex;flex:none;position:absolute;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:40;background:rgba(26,28,36,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.07);border-radius:999px;box-shadow:0 10px 34px rgba(0,0,0,.5);padding:4px 6px}
+.tabs button{flex:1;padding:9px 0 8px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--dim);font-size:10px;font-weight:500;position:relative;border-radius:999px}
+.tabs button.on{color:var(--tx);background:rgba(255,255,255,.07)}
 .tabs button.on svg{stroke:url(#g1)}
-.dot{position:absolute;top:5px;right:calc(50% - 20px);min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--bad);color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center}
+.dot{position:absolute;top:3px;right:calc(50% - 22px);min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--bad);color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center;z-index:2}
 
 /* значки */
 .badge{width:22px;height:22px;border-radius:6px;flex:none;object-fit:cover;background:var(--s3)}
@@ -170,6 +170,23 @@ img{display:block;max-width:100%}
 .bub.mine{background:var(--grad);color:#fff;margin-left:auto;border-bottom-right-radius:7px;cursor:pointer}
 .bub.pic{padding:5px 5px 6px}
 .bub img{border-radius:15px;max-height:340px;object-fit:cover;cursor:zoom-in}
+.reacts{display:flex;gap:5px;flex-wrap:wrap;margin:-4px 0 8px;max-width:78%}
+.reacts.mine{margin-left:auto;justify-content:flex-end}
+.rc{display:flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:var(--s2);font-size:13px;border:1px solid transparent;cursor:pointer}
+.rc.my{border-color:#7B9DFF;background:rgba(123,157,255,.14)}
+.re-q{display:flex;flex-direction:column;gap:1px;border-left:3px solid rgba(255,255,255,.45);padding:2px 8px;margin-bottom:5px;border-radius:4px;background:rgba(255,255,255,.07);cursor:pointer}
+.re-q .rn{font-size:12px;font-weight:700}
+.re-q .rt{font-size:12px;opacity:.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:230px}
+#reBar{display:flex;align-items:center;gap:9px;padding:7px 12px;background:var(--s1);border-top:1px solid var(--line)}
+#reBar .rb-line{width:3px;align-self:stretch;border-radius:2px;background:#7B9DFF}
+#reBar .rb-mid{flex:1;min-width:0}
+#reBar .rb-n{font-size:12px;font-weight:700;color:#9db4ff}
+#reBar .rb-t{font-size:12px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#reBar button{color:var(--dim);font-size:17px;padding:4px 8px}
+.edited{font-size:10px;opacity:.65;margin-right:4px}
+.emo-row{display:flex;justify-content:space-around;padding:4px 6px 10px}
+.emo-row button{font-size:26px;padding:6px 8px;border-radius:12px}
+.emo-row button:active{background:var(--s2)}
 .bub .cap-t{padding:5px 8px 0;white-space:pre-wrap}
 .bub .ts{display:block;font-size:10px;opacity:.65;text-align:right;margin-top:3px;font-family:"JetBrains Mono",monospace}
 .bub.pic .ts{padding-right:6px}
@@ -1965,6 +1982,19 @@ function drawMsgs(list){
       box.append(lbl);
     }
     const b = el("div", "bub " + (mine ? "mine" : "them") + (prev && prev.from === m.from ? " tight" : "") + (m.img ? " pic" : "") + (m.poll ? " poll" : ""));
+    b.dataset.mid = m.id;
+    if (m.re && m.re.id) {
+      const q = el("div", "re-q");
+      q.append(el("div", "rn", m.re.n || "…"));
+      q.append(el("div", "rt", m.re.t || ""));
+      q.onclick = ev => {
+        ev.stopPropagation();
+        const t = box.querySelector('[data-mid="' + m.re.id + '"]');
+        if (t) { t.scrollIntoView({ behavior: "smooth", block: "center" }); t.style.transition = "filter .2s"; t.style.filter = "brightness(1.6)"; setTimeout(() => t.style.filter = "", 600); }
+        else toast("Сообщение не найдено");
+      };
+      b.append(q);
+    }
     if (m.img) {
       const im = document.createElement("img"); im.src = m.img; im.alt = "";
       im.onclick = ev => { ev.stopPropagation(); $("lightImg").src = m.img; $("light").classList.add("on"); };
@@ -2003,6 +2033,7 @@ function drawMsgs(list){
       b.append(cc);
     } else if (m.text) renderRich(b, m.text);
     const ts = el("span", "ts", hhmm(m.at));
+    if (m.edited) ts.prepend(el("span", "edited", "изм."));
     if (mine) {
       const st = el("span", "st");
       if (m._pending || !m.at) {
@@ -2019,22 +2050,75 @@ function drawMsgs(list){
     }
     b.append(ts);
     const canDel = mine || (grp && (myPerms().del || active.chat.owner === me.uid));
-    if (canDel) b.onclick = () => msgMenu(m, mine);
+    b.onclick = () => msgMenu(m, mine, canDel);
     box.append(b);
+    const rx = m.reacts || {};
+    const keys = Object.keys(rx).filter(k => (rx[k] || []).length > 0);
+    if (keys.length) {
+      const rr = el("div", "reacts" + (mine ? " mine" : ""));
+      for (const k of keys) {
+        const arr = rx[k] || [];
+        const chip = el("button", "rc" + (arr.includes(me.uid) ? " my" : ""));
+        chip.append(el("span", null, k), el("span", null, String(arr.length)));
+        chip.onclick = ev => { ev.stopPropagation(); toggleReact(m, k); };
+        rr.append(chip);
+      }
+      box.append(rr);
+    }
     prev = m;
   }
   box.scrollTop = box.scrollHeight;
 }
 
-function msgMenu(m, mine){
+async function toggleReact(m, emoji){
+  if (!active) return;
+  const arr = (m.reacts || {})[emoji] || [];
+  const op = arr.includes(me.uid) ? arrayRemove(me.uid) : arrayUnion(me.uid);
+  try { await updateDoc(doc(db, "chats", active.id, "messages", m.id), { ["reacts." + emoji]: op }); }
+  catch (e) { toast(say(e)); }
+}
+
+function msgMenu(m, mine, canDel){
   const b = $("sheetBody"); b.replaceChildren();
-  const d = el("button", "danger", mine ? T("mdelMsg") : T("mdelMod"));
-  d.onclick = async () => {
+
+  const er = el("div", "emo-row");
+  for (const e of ["❤️", "👍", "😂", "🔥", "😮", "😢"]) {
+    const eb = el("button", null, e);
+    eb.onclick = () => { hideSheet(); toggleReact(m, e); };
+    er.append(eb);
+  }
+  b.append(er);
+
+  const rp = el("button", null, "Ответить");
+  rp.onclick = () => {
     hideSheet();
-    try { await deleteDoc(doc(db, "chats", active.id, "messages", m.id)); toast(T("deleted")); }
-    catch (e) { toast(say(e)); }
+    const p = cache.get(m.from);
+    const who = mine ? (me.name || me.nick) : (p ? (p.name || p.nick) : "…");
+    const prev = m.text ? m.text.slice(0, 80) : (m.img ? "Фото" : (m.poll ? "Опрос" : (m.contact ? "Контакт" : "Сообщение")));
+    replyRe = { id: m.id, n: who, t: prev };
+    editingId = null; reBarShow(); ta.focus();
   };
-  b.append(d);
+  b.append(rp);
+
+  if (mine && m.text && !m.poll && !m.img) {
+    const ed = el("button", null, "Изменить");
+    ed.onclick = () => {
+      hideSheet();
+      editingId = m.id; replyRe = null;
+      ta.value = m.text; ta.focus(); reBarShow();
+    };
+    b.append(ed);
+  }
+
+  if (canDel) {
+    const d = el("button", "danger", mine ? T("mdelMsg") : T("mdelMod"));
+    d.onclick = async () => {
+      hideSheet();
+      try { await deleteDoc(doc(db, "chats", active.id, "messages", m.id)); toast(T("deleted")); }
+      catch (e) { toast(say(e)); }
+    };
+    b.append(d);
+  }
   if (!mine) {
     const p = el("button", null, T("mopen"));
     p.onclick = () => { hideSheet(); openProfile(m.from); };
@@ -2137,12 +2221,46 @@ $("pickImg").onchange = async e => {
   toast("Готовлю фото…");
   try { await post(await shrink(f, 1280, 380000)); } catch (_) { toast("Не получилось прочитать картинку"); }
 };
+let replyRe = null;   // { id, n, t }
+let editingId = null;
+
+function reBarShow(){
+  let bar = $("reBar");
+  if (!bar) {
+    bar = el("div"); bar.id = "reBar";
+    const ib = $("comp");
+    ib.parentElement.insertBefore(bar, ib);
+  }
+  bar.replaceChildren();
+  const line = el("div", "rb-line");
+  const mid = el("div", "rb-mid");
+  if (editingId) {
+    mid.append(el("div", "rb-n", "Изменение сообщения"));
+    mid.append(el("div", "rb-t", "Отправь, чтобы сохранить"));
+  } else if (replyRe) {
+    mid.append(el("div", "rb-n", replyRe.n));
+    mid.append(el("div", "rb-t", replyRe.t));
+  }
+  const x = el("button", null, "✕");
+  x.onclick = () => { replyRe = null; editingId = null; ta.value = editingId ? "" : ta.value; bar.remove(); };
+  bar.append(line, mid, x);
+}
+function reBarHide(){ const b = $("reBar"); if (b) b.remove(); replyRe = null; editingId = null; }
+
 async function post(img){
   const text = ta.value.trim();
   if ((!text && !img) || !active) return;
   ta.value = ""; ta.style.height = "auto"; $("send").disabled = true;
+  if (editingId) {
+    const eid = editingId; reBarHide();
+    try { await updateDoc(doc(db, "chats", active.id, "messages", eid), { text, edited: true }); }
+    catch (e) { toast(say(e)); }
+    $("send").disabled = false;
+    return;
+  }
   const body = { from: me.uid, text, at: serverTimestamp() };
   if (img) body.img = img;
+  if (replyRe) { body.re = replyRe; reBarHide(); }
   try {
     await addDoc(collection(db, "chats", active.id, "messages"), body);
     await updateDoc(C(active.id), { lastText: (img ? T("photo") : text).slice(0, 80), lastFrom: me.uid, lastAt: serverTimestamp() });
