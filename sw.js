@@ -1,5 +1,5 @@
 /* Kwora SW v3: запас firebase-файлов + фоновые пуш-уведомления */
-const CACHE = "kwora-v4";
+const CACHE = "kwora-v5";
 const FB = ["firebase-app.js","firebase-auth.js","firebase-firestore.js","firebase-functions.js",
             "firebase-messaging.js","firebase-storage.js","firebase-app-compat.js","firebase-messaging-compat.js"];
 
@@ -70,11 +70,13 @@ self.addEventListener("fetch", (e) => {
   const isFB = FB.some(f => url.pathname.endsWith("/" + f));
   if (isFB) {
     e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(res => {
-      const cp = res.clone(); caches.open(CACHE).then(c => c.put(req, cp)).catch(() => {}); return res;
+      if (res.ok) { const cp = res.clone(); caches.open(CACHE).then(c => c.put(req, cp)).catch(() => {}); }
+      return res;
     })));
     return;
   }
   e.respondWith(fetch(req).then(res => {
-    const cp = res.clone(); caches.open(CACHE).then(c => c.put(req, cp)).catch(() => {}); return res;
+    if (res.ok) { const cp = res.clone(); caches.open(CACHE).then(c => c.put(req, cp)).catch(() => {}); }
+    return res;
   }).catch(() => caches.match(req)));
 });
