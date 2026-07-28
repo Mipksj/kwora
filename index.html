@@ -140,7 +140,7 @@ img{display:block;max-width:100%}
 .dot{position:absolute;top:3px;right:calc(50% - 22px);min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--bad);color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center;z-index:2}
 
 /* значки */
-.badge{width:22px;height:22px;border-radius:50%;flex:none;object-fit:cover;background:var(--s3)}
+.badge{width:22px;height:22px;border-radius:50%;flex:none;object-fit:cover}
 .badge.sm{width:17px;height:17px;border-radius:50%}
 .badgerow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 
@@ -324,7 +324,7 @@ body.in-chat .tabs{display:none}
 .pf-sec .t{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--dim);margin-bottom:9px}
 .pf-badges{display:flex;flex-wrap:wrap;gap:12px}
 .pf-badge{display:flex;flex-direction:column;align-items:center;gap:5px;width:58px;text-align:center}
-.pf-badge img{width:40px;height:40px;border-radius:11px;object-fit:cover;background:var(--s3)}
+.pf-badge img{width:40px;height:40px;border-radius:50%;object-fit:cover}
 .pf-badge span{font-size:10px;color:var(--dim);line-height:1.2}
 .pf-act{display:flex;gap:8px;padding:14px 18px;flex-wrap:wrap}
 .pf-act button{flex:1;min-width:120px;border-radius:13px;padding:12px;font-weight:600;background:var(--s2);border:1px solid var(--line)}
@@ -3557,7 +3557,7 @@ function uploadBadge(){
   const d = $("dlg"); d.replaceChildren();
   d.append(el("h3", null, "Новый значок"));
   const prev = el("div"); prev.style.cssText = "display:flex;justify-content:center;margin:8px 0 14px";
-  const box = el("div"); box.style.cssText = "width:72px;height:72px;border-radius:16px;background:var(--s2);border:1px dashed var(--line);display:grid;place-items:center;cursor:pointer;overflow:hidden;font-size:26px;color:var(--dim)";
+  const box = el("div"); box.style.cssText = "width:72px;height:72px;border-radius:50%;background:var(--s2);border:1px dashed var(--line);display:grid;place-items:center;cursor:pointer;overflow:hidden;font-size:26px;color:var(--dim)";
   box.textContent = "＋";
   prev.append(box); d.append(prev);
   let imgData = "";
@@ -3745,10 +3745,10 @@ async function awardBotBadge(done){
   const wrap = el("div"); wrap.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:12px;padding:14px 0";
   if (badge && badge.img) {
     const im = document.createElement("img"); im.src = badge.img;
-    im.style.cssText = "width:88px;height:88px;border-radius:22px;object-fit:cover;box-shadow:0 8px 30px -10px rgba(123,97,255,.7)";
+    im.style.cssText = "width:88px;height:88px;border-radius:50%;object-fit:cover;box-shadow:0 8px 30px -10px rgba(123,97,255,.7)";
     wrap.append(im);
   } else {
-    const ph = el("div"); ph.style.cssText = "width:88px;height:88px;border-radius:22px;background:var(--grad);display:grid;place-items:center;font-size:38px";
+    const ph = el("div"); ph.style.cssText = "width:88px;height:88px;border-radius:50%;background:var(--grad);display:grid;place-items:center;font-size:38px";
     ph.textContent = "🤖"; wrap.append(ph);
   }
   wrap.append(el("div", null, badge ? (badge.name || "bot creator") : "bot creator"));
