@@ -10,7 +10,7 @@ jobs:
       - name: download & patch firebase sdk
         run: |
           V=10.12.2
-          for f in firebase-app.js firebase-auth.js firebase-firestore.js firebase-functions.js firebase-messaging.js firebase-app-compat.js firebase-messaging-compat.js; do
+          for f in firebase-app.js firebase-auth.js firebase-firestore.js firebase-functions.js firebase-messaging.js firebase-storage.js firebase-app-compat.js firebase-messaging-compat.js; do
             curl -fsSL "https://www.gstatic.com/firebasejs/$V/$f" -o "$f"
             sed -i "s#https://www.gstatic.com/firebasejs/$V/#./#g" "$f"
           done
