@@ -140,8 +140,8 @@ img{display:block;max-width:100%}
 .dot{position:absolute;top:3px;right:calc(50% - 22px);min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--bad);color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center;z-index:2}
 
 /* значки */
-.badge{width:22px;height:22px;border-radius:6px;flex:none;object-fit:cover;background:var(--s3)}
-.badge.sm{width:17px;height:17px;border-radius:5px}
+.badge{width:22px;height:22px;border-radius:50%;flex:none;object-fit:cover;background:var(--s3)}
+.badge.sm{width:17px;height:17px;border-radius:50%}
 .badgerow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 
 #chat{
@@ -196,6 +196,7 @@ img{display:block;max-width:100%}
 .mpop button:hover{background:var(--s2)}
 .mention{color:#B9C6FF;background:rgba(123,97,255,.22);border-radius:7px;padding:0 5px;cursor:pointer;font-weight:600}
 .bub.mine .mention{color:#fff;background:rgba(255,255,255,.25)}
+body.in-chat .tabs{display:none}
 #gcall{position:fixed;inset:0;background:#111216;z-index:120;display:flex;flex-direction:column}
 #gcall.hide{display:none}
 .gc-grid{flex:1;min-height:0;overflow:auto;display:grid;gap:10px;padding:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));align-content:center;align-items:center}
@@ -1038,14 +1039,20 @@ function cropImage(file, opts){
           const ow = out, oh = Math.round(out / aspect);
           oc.width = ow; oc.height = oh;
           const octx = oc.getContext("2d");
-          octx.fillStyle = "#ffffff"; octx.fillRect(0, 0, ow, oh);
+          if (opts.png && round) { octx.save(); octx.beginPath(); octx.arc(ow / 2, oh / 2, ow / 2, 0, Math.PI * 2); octx.clip(); }
+          else { octx.fillStyle = "#ffffff"; octx.fillRect(0, 0, ow, oh); }
           // соответствие: точка рамки (fx,fy)-(fw,fh) -> (0,0)-(ow,oh)
           const sx = (fx - state.tx) / state.scale;
           const sy = (fy - state.ty) / state.scale;
           const sw = fw / state.scale, sh = fh / state.scale;
           octx.drawImage(img, sx, sy, sw, sh, 0, 0, ow, oh);
-          let q = 0.85, data = oc.toDataURL("image/jpeg", q);
-          while (data.length > budget && q > 0.3) { q -= 0.08; data = oc.toDataURL("image/jpeg", q); }
+          if (opts.png && round) octx.restore();
+          let data;
+          if (opts.png && round) { data = oc.toDataURL("image/png"); }
+          else {
+            let q = 0.85; data = oc.toDataURL("image/jpeg", q);
+            while (data.length > budget && q > 0.3) { q -= 0.08; data = oc.toDataURL("image/jpeg", q); }
+          }
           ov.remove(); resolve(data);
         };
 
@@ -1363,6 +1370,7 @@ function stopAll(){
   isAdmin = false; kTaps = 0;
 
   $("chat").classList.remove("on");
+  document.body.classList.remove("in-chat");
   $("app").classList.add("hide");
   $("splash").classList.add("hide");
   $("forgot").classList.add("hide");
@@ -1797,6 +1805,7 @@ function paint(){
   $("chatEmpty").classList.add("hide");
   $("chatBox").classList.remove("hide");
   $("chat").classList.add("on");
+  document.body.classList.add("in-chat");
   $("msgs").replaceChildren();
   head(); gate();
 }
@@ -1934,6 +1943,7 @@ function listen(id){
 }
 function closeChat(){
   $("chat").classList.remove("on");
+  document.body.classList.remove("in-chat");
   $("chatBox").classList.add("hide");
   $("chatEmpty").classList.remove("hide");
   if (subMsgs) subMsgs(); subMsgs = null;
@@ -3133,6 +3143,15 @@ function wipe(title, text){
 /* ============ ПРОФИЛЬ (вкладка) ============ */
 function drawMe(){
   const box = $("listMe"); const keep = box.scrollTop; box.replaceChildren();
+  const mb = el("div", "pf-banner");
+  if (me.banner) { const bi0 = document.createElement("img"); bi0.src = me.banner; bi0.alt = ""; mb.append(bi0); }
+  const bc0 = el("button", "pf-bnr-cam");
+  bc0.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.2l1-1.6h4.6l1 1.6h1.2A2.5 2.5 0 0 1 18 8.5v7A2.5 2.5 0 0 1 15.5 18h-10A2.5 2.5 0 0 1 3 15.5z"/><circle cx="10.5" cy="11.5" r="3"/></svg>';
+  bc0.onclick = () => $("pickBnr").click();
+  mb.append(bc0);
+  mb.style.borderRadius = "16px";
+  mb.style.margin = "0 0 12px";
+  box.append(mb);
 
   const wrap = el("div", "avabig");
   wrap.append(ava(me, 104));
@@ -3437,7 +3456,7 @@ function uploadBadge(){
   prev.append(box); d.append(prev);
   let imgData = "";
   const pb = $("pickBadge");
-  const pick = () => { pb.onchange = async e => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (!f) return; try { imgData = await cropImage(f, { round: true, aspect: 1, out: 128, budget: 60000 }); if (!imgData) return; box.replaceChildren(); const im = document.createElement("img"); im.src = imgData; im.style.cssText = "width:100%;height:100%;object-fit:cover"; box.append(im); } catch (err) { toast(say(err)); } }; pb.click(); };
+  const pick = () => { pb.onchange = async e => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (!f) return; try { imgData = await cropImage(f, { round: true, aspect: 1, out: 128, budget: 60000, png: true }); if (!imgData) return; box.replaceChildren(); const im = document.createElement("img"); im.src = imgData; im.style.cssText = "width:100%;height:100%;object-fit:cover"; box.append(im); } catch (err) { toast(say(err)); } }; pb.click(); };
   box.onclick = pick;
 
   const b1 = el("div", "inp"); const nm = document.createElement("input"); nm.placeholder = "Название значка"; nm.maxLength = 24; b1.append(nm); d.append(b1);
