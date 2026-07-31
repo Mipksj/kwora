@@ -376,6 +376,13 @@ body.in-chat .tabs{display:none}
 .ringpulse{animation:pulse 1.6s ease-in-out infinite}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
 @media(prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+body.light{
+  --bg:#F3F4F8; --s1:#FFFFFF; --s2:#ECEEF4; --s3:#E1E4EC; --line:#D8DBE4;
+  --tx:#15171D; --dim:#5F6673;
+  background:var(--bg); color:var(--tx);
+}
+body.light .tabs{background:rgba(255,255,255,.9);border-color:rgba(0,0,0,.08)}
+body.light .bub.them{color:var(--tx)}
 </style>
 </head>
 <body>
@@ -398,12 +405,16 @@ body.in-chat .tabs{display:none}
   <section id="auth" class="hide">
     <div class="logo">Kwora</div>
     <div class="pane">
-      <h3 id="authTitle">Вход по почте</h3>
-      <div class="sub" id="authSub">Пришлём код — покажем ваши аккаунты. Пароли не нужны.</div>
+      <h3 id="authTitle">Вход</h3>
+      <div class="sub" id="authSub">Почта и пароль от аккаунта</div>
       <div class="inp" id="fId"><input id="iId" type="email" placeholder="почта" autocomplete="email" autocapitalize="none" autocorrect="off"></div>
-      <button id="go" class="cta">Получить код</button>
+      <div class="inp"><input id="iPass" type="password" placeholder="пароль" autocomplete="current-password"></div>
+      <button id="go" class="cta">Войти</button>
+      <button id="forgotBtn" class="plain">Забыли пароль?</button>
+      <button id="regBtn" class="plain">Создать аккаунт</button>
       <div id="note" class="note"></div>
     </div>
+    <div id="studio" style="position:absolute;left:0;right:0;bottom:calc(14px + env(safe-area-inset-bottom));text-align:center;font-size:11px;color:var(--dim);opacity:.75"></div>
   </section>
 
   <!-- ======== КОД / АККАУНТЫ ======== -->
@@ -783,6 +794,8 @@ function langPickScreen(afterPick){
 }
 
 
+const KW_BUILD = "v49";
+try { if (localStorage.getItem("kwTheme") === "light") document.body.classList.add("light"); } catch (_) {}
 const ICE = {
   iceServers: [
     { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"] },
@@ -809,6 +822,11 @@ if (window.__mark) __mark("db-mod");
 const fns = getFunctions(fb);
 const callMailStart = httpsCallable(fns, "mailAuthStart");
 const callMailConfirm = httpsCallable(fns, "mailAuthConfirm");
+const callPassLogin = httpsCallable(fns, "passLogin");
+const callSetPass = httpsCallable(fns, "setMyPass");
+const callHasPass = httpsCallable(fns, "hasPass");
+const PASS_RE = /^(?=.*[A-Za-z])(?=.*\d)[\x21-\x7E]{6,64}$/;
+try { document.getElementById("studio").textContent = "студия g2 · " + KW_BUILD; } catch (_) {}
 const callClaimBadge = httpsCallable(fns, "claimBotBadge");
 if (window.__mark) __mark("firebase-ок");
 
@@ -1217,14 +1235,40 @@ const loginMail = id => (id.includes("@") ? id : id.toLowerCase() + DOM);
 
 $("go").onclick = async () => {
   const mail = $("iId").value.trim();
+  const password = $("iPass").value;
   $("note").textContent = "";
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) { $("note").textContent = T("badMail"); return; }
+  if (!password) { $("note").textContent = "Введи пароль. Нет пароля — «Забыли пароль?»"; return; }
   $("go").disabled = true;
   try {
-    await callMailStart({ mail });
-    FG.mail = mail;
-    fgStepCode();
+    const r = (await callPassLogin({ mail, password })).data;
+    if (r.pick) {
+      FG.mail = mail; FG.passForPick = password; FG.accounts = r.accounts;
+      fgStepAccounts();
+    } else if (r.token) {
+      await signInWithCustomToken(auth, r.token);
+    }
   } catch (e) { $("note").textContent = fbErr(e); }
+  $("go").disabled = false;
+};
+
+$("forgotBtn").onclick = async () => {
+  const mail = $("iId").value.trim();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) { $("note").textContent = "Сначала введи почту сверху"; return; }
+  $("note").textContent = "";
+  $("go").disabled = true;
+  try { await callMailStart({ mail }); FG.mail = mail; FG.forceSetPass = true; fgStepCode(); }
+  catch (e) { $("note").textContent = fbErr(e); }
+  $("go").disabled = false;
+};
+
+$("regBtn").onclick = async () => {
+  const mail = $("iId").value.trim();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) { $("note").textContent = "Введи почту сверху — пришлём код для регистрации"; return; }
+  $("note").textContent = "";
+  $("go").disabled = true;
+  try { await callMailStart({ mail }); FG.mail = mail; FG.wantReg = true; fgStepCode(); }
+  catch (e) { $("note").textContent = fbErr(e); }
   $("go").disabled = false;
 };
 
@@ -1315,7 +1359,7 @@ function fgStepAccounts(){
     mid.append(t1);
     mid.append(el("div", "t2 mono ell", "@" + a.nick));
     row.append(mid);
-    row.onclick = () => fgDo(a, row);
+    row.onclick = () => (FG.passForPick ? passDo(a, row) : fgDo(a, row));
     b.append(row);
   }
   const err = el("div", "note"); err.id = "fgErr"; b.append(err);
@@ -1334,6 +1378,9 @@ function fgStepRegister(){
   const b2 = el("div", "inp"); b2.append(el("span", "pre", "@"));
   const nk = document.createElement("input"); nk.placeholder = T("nickPh"); nk.maxLength = 20; nk.autocapitalize = "none";
   b2.append(nk); b.append(b2);
+  const b3 = el("div", "inp"); const pw = document.createElement("input");
+  pw.type = "password"; pw.placeholder = "пароль (мин. 6, латиница и цифры)"; pw.autocomplete = "new-password";
+  b3.append(pw); b.append(b3);
   const err = el("div", "note"); b.append(err);
   const ok = el("button", "cta", T("createGo"));
   ok.onclick = async () => {
@@ -1342,7 +1389,8 @@ function fgStepRegister(){
     if (!/^[a-z0-9_]{3,20}$/.test(low)) { err.textContent = T("nickRule"); return; }
     ok.disabled = true;
     try {
-      const r = await callMailConfirm({ mail: FG.mail, code: FG.code, action: "register", nick, name: nm.value.trim() || nick });
+      if (!PASS_RE.test(pw.value)) { toast("Пароль: минимум 6 символов, латинские буквы и цифры"); return; }
+      const r = await callMailConfirm({ mail: FG.mail, code: FG.code, action: "register", nick, name: nm.value.trim() || nick, newPassword: pw.value });
       const token = r.data && r.data.token;
       if (!token) throw new Error("Токен не получен");
       $("forgot").classList.add("hide");
@@ -1361,6 +1409,31 @@ function fgStepRegister(){
 
 
 /* вход по токену */
+async function passDo(a, btn){
+  if (btn) btn.disabled = true;
+  $("forgot").classList.add("hide");
+  $("splash").classList.remove("hide");
+  const slow = setTimeout(() => {
+    $("splash").classList.add("hide");
+    $("forgot").classList.remove("hide");
+    const e = $("fgErr"); if (e) e.textContent = "Сервер не ответил. Попробуйте ещё раз.";
+    if (btn) btn.disabled = false;
+  }, 15000);
+  try {
+    const r = await callPassLogin({ mail: FG.mail, password: FG.passForPick, uid: a.uid });
+    clearTimeout(slow);
+    const token = r.data && r.data.token;
+    if (!token) throw new Error("Токен не получен");
+    await signInWithCustomToken(auth, token);
+  } catch (e) {
+    clearTimeout(slow);
+    $("splash").classList.add("hide");
+    $("forgot").classList.remove("hide");
+    const eb = $("fgErr"); if (eb) eb.textContent = fbErr(e); else toast(fbErr(e));
+    if (btn) btn.disabled = false;
+  }
+}
+
 async function fgDo(a, btn){
   if (btn) btn.disabled = true;
   $("forgot").classList.add("hide");
@@ -1431,6 +1504,7 @@ function stopAll(){
 async function start(p){
   if (window.__mark) __mark("старт-профиля");
   setTimeout(pushSetup, 1500);
+  setTimeout(passGate, 2500);
   setTimeout(tourMain, 1200);
   setTimeout(function beat(){
     if (me && document.visibilityState === "visible") updateDoc(U(me.uid), { lastSeen: Date.now() }).catch(() => {});
@@ -2958,7 +3032,7 @@ async function pushDiag(){
       out.push("→ Уведомления запрещены для сайта. Разреши в настройках сайта (замочек в адресной строке).");
     }
   } catch (e) { out.push("Сбой диагностики: " + (e.message || e)); }
-  alert("ПРОВЕРКА ПУШЕЙ v44:\n\n" + out.join("\n"));
+  alert("ПРОВЕРКА ПУШЕЙ · сборка " + KW_BUILD + ":\n\n" + out.join("\n"));
   if (("Notification" in window) && Notification.permission === "default") {
     const perm = await Notification.requestPermission().catch(() => "default");
     if (perm === "granted") { await pushToken(); toast("Уведомления включены"); }
@@ -3073,6 +3147,35 @@ function tourChat(){
     { sel: "#send", text: "Отправка. А если тапнуть по любому сообщению — реакции, ответ и изменение." },
     { sel: "#callA", text: "Звонок другу — обычный или видео." }
   ], "kwTourChat");
+}
+
+async function passGate(){
+  try {
+    const r = (await callHasPass({})).data;
+    if (r && r.has) return;
+  } catch (_) { return; }
+  if (document.getElementById("pgOv")) return;
+  const ov = el("div"); ov.id = "pgOv";
+  ov.style.cssText = "position:fixed;inset:0;z-index:350;background:rgba(5,6,10,.88);display:grid;place-items:center;padding:22px";
+  const card = el("div");
+  card.style.cssText = "width:100%;max-width:360px;background:var(--s1);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:20px";
+  card.append(el("h3", null, "Установи пароль"));
+  const sub = el("div", "sub", "Теперь вход по паролю. Минимум 6 символов, латинские буквы и цифры.");
+  card.append(sub);
+  const b1 = el("div", "inp"); const pw = document.createElement("input");
+  pw.type = "password"; pw.placeholder = "новый пароль"; pw.autocomplete = "new-password";
+  b1.append(pw); card.append(b1);
+  const err = el("div", "note"); card.append(err);
+  const ok = el("button", "cta", "Сохранить");
+  ok.onclick = async () => {
+    if (!PASS_RE.test(pw.value)) { err.textContent = "Минимум 6 символов, латинские буквы и цифры."; return; }
+    ok.disabled = true;
+    try { await callSetPass({ password: pw.value }); ov.remove(); toast("Пароль установлен"); }
+    catch (e) { err.textContent = fbErr(e); ok.disabled = false; }
+  };
+  card.append(ok);
+  ov.append(card);
+  document.body.append(ov);
 }
 
 async function pushSetup(){
@@ -3437,16 +3540,31 @@ function drawMe(){
   who.append(el("div", "u", "@" + me.nick));
   box.append(who);
 
+  function section(title){
+    const btn = el("button", "card"); btn.style.cssText = "width:100%;display:flex;align-items:center;justify-content:space-between;padding:14px 16px;margin:10px 0 0;font-size:15px;font-weight:600;text-align:left";
+    const ar = el("span", null, "▸"); ar.style.cssText = "transition:transform .15s;color:var(--dim)";
+    btn.append(el("span", null, title), ar);
+    const body = el("div"); body.style.display = "none";
+    btn.onclick = () => { const on = body.style.display === "none"; body.style.display = on ? "" : "none"; ar.style.transform = on ? "rotate(90deg)" : ""; };
+    box.append(btn, body);
+    return body;
+  }
+  const secP = section("Профиль");
+  const _ba = box.append.bind(box);
+  let __route = null;
+  box.append = (...xs) => (__route ? __route.append(...xs) : _ba(...xs));
+  __route = secP;
+
   const myBadges = (me.badges || []).map(id => badgeCat.find(b => b.id === id)).filter(Boolean);
   if (myBadges.length) {
-    box.append(el("div", "cap", T("myBadges")));
+    { const t = __route; __route = null; box.append(el("div", "cap", T("myBadges"))); __route = t; }
     const card = el("div", "card"); const row = el("div", "pf-badges"); row.style.padding = "14px";
     for (const b of myBadges) {
       const cell = el("div", "pf-badge");
       if (b.img) { const im = document.createElement("img"); im.src = b.img; im.alt = ""; cell.append(im); }
       cell.append(el("span", null, b.name || "")); row.append(cell);
     }
-    card.append(row); box.append(card);
+    card.append(row); { const t = __route; __route = null; box.append(card); __route = t; }
   }
 
   const c1 = el("div", "card");
@@ -3501,11 +3619,39 @@ function drawMe(){
   const out = el("div", "card");
   const l8 = el("div", "line"); const ob = el("button", "grow danger", T("logout")); ob.style.textAlign = "left";
   ob.onclick = async () => { stopAll(); await signOut(auth); };
+  const tc = el("div", "card"); const tl = el("div", "line");
+  tl.append(el("div", "k", "Тема"));
+  const tbtn = el("button", "pill", document.body.classList.contains("light") ? "Светлая ☀" : "Тёмная ☾");
+  tbtn.onclick = () => {
+    const light = !document.body.classList.contains("light");
+    document.body.classList.toggle("light", light);
+    try { localStorage.setItem("kwTheme", light ? "light" : "dark"); } catch (_) {}
+    if (me) updateDoc(U(me.uid), { theme: light ? "light" : "dark" }).catch(() => {});
+    tbtn.textContent = light ? "Светлая ☀" : "Тёмная ☾";
+  };
+  tl.append(tbtn); tc.append(tl); box.append(tc);
+
+  if (!isAdmin) {
+    const ac = el("div", "card"); const al = el("div", "line");
+    al.append(el("div", "k", "ADMIN"));
+    const ab = el("button", "pill", "Активировать");
+    ab.onclick = async () => {
+      const key = prompt("Ключ администратора:");
+      if (!key) return;
+      try {
+        await setDoc(doc(db, "admins", me.uid), { key: key.trim() });
+        isAdmin = true; toast("ADMIN активирован"); drawMe();
+      } catch (e) { toast("Неверный ключ"); }
+    };
+    al.append(ab); ac.append(al); box.append(ac);
+  }
+
   l8.append(ob); out.append(l8); box.append(out);
+  __route = null;
 
   // приглашение в Bot Creator (если ещё не присоединился)
   if (!me.botJoined) {
-    box.append(el("div", "cap", T("capDev")));
+    __route = section("Bot creator");
     const bc = el("div", "card"); bc.style.padding = "16px";
     const h = el("div"); h.style.cssText = "font-size:19px;font-weight:700;font-family:Unbounded,sans-serif";
     h.textContent = "bot creator";
@@ -3519,9 +3665,10 @@ function drawMe(){
     };
     bc.append(j);
     box.append(bc);
+    __route = null;
   }
 
-  if (isAdmin) box.append(adminPanel());
+  if (isAdmin) { __route = section("ADMIN"); box.append(adminPanel()); __route = null; }
 
   const k = el("button", "kbtn", "k");
   k.onclick = () => { clearTimeout(kTimer); kTaps++; kTimer = setTimeout(() => { kTaps = 0; }, 2500); if (kTaps >= 11) { kTaps = 0; askKey(); } };
