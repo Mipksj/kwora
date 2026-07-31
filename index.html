@@ -785,7 +785,16 @@ function langPickScreen(afterPick){
 
 const ICE = {
   iceServers: [
-    { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"] }
+    { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"] },
+    {
+      urls: [
+        "turn:openrelay.metered.ca:80",
+        "turn:openrelay.metered.ca:443",
+        "turns:openrelay.metered.ca:443?transport=tcp"
+      ],
+      username: "openrelayproject",
+      credential: "openrelayproject"
+    }
   ],
   iceCandidatePoolSize: 10
 };
@@ -2997,8 +3006,9 @@ navigator.serviceWorker && navigator.serviceWorker.addEventListener("message", (
 let __tourActive = false;
 function runTour(steps, doneKey){
   if (__tourActive || localStorage.getItem(doneKey)) return;
+  if (me && me.tours && me.tours[doneKey]) { localStorage.setItem(doneKey, "1"); return; }
   const list = steps.filter(st => document.querySelector(st.sel));
-  if (!list.length) { localStorage.setItem(doneKey, "1"); return; }
+  if (!list.length) { localStorage.setItem(doneKey, "1"); if (me) updateDoc(U(me.uid), { ["tours." + doneKey]: true }).catch(() => {}); return; }
   __tourActive = true;
   let i = 0;
   const hole = el("div", "tour-hole");
@@ -3007,6 +3017,7 @@ function runTour(steps, doneKey){
   function finish(){
     __tourActive = false;
     localStorage.setItem(doneKey, "1");
+    if (me) updateDoc(U(me.uid), { ["tours." + doneKey]: true }).catch(() => {});
     hole.remove(); tip.remove();
   }
   function show(){
