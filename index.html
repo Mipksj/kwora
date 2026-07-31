@@ -3193,6 +3193,28 @@ async function pushSetup(){
 /* ============ ГРУППОВОЙ ЗВОНОК (mesh) ============ */
 let gc = null; // { chatId, stream, peers:Map<uid,{pc,subs:[]}>, subs:[], mic:true, cam:true }
 
+function iceDiag(pc, label){
+  const st = { host: 0, srflx: 0, relay: 0, shown: false };
+  pc.addEventListener("icecandidate", e => {
+    if (!e.candidate) return;
+    const c = e.candidate.candidate || "";
+    if (c.includes(" typ relay")) st.relay++;
+    else if (c.includes(" typ srflx")) st.srflx++;
+    else if (c.includes(" typ host")) st.host++;
+  });
+  setTimeout(() => {
+    const ok = ["connected", "completed"].includes(pc.iceConnectionState);
+    if (ok || st.shown) return;
+    st.shown = true;
+    alert("ЗВОНОК НЕ СОЕДИНИЛСЯ (" + label + ")\n" +
+      "Состояние: " + pc.iceConnectionState + "\n" +
+      "Кандидаты — прямые: " + st.host + ", через NAT: " + st.srflx + ", через TURN: " + st.relay + "\n\n" +
+      (st.relay === 0
+        ? "TURN-кандидатов НЕТ — ретранслятор недоступен из твоей сети. Пришли этот текст."
+        : "TURN есть, но связь не собралась. Пришли этот текст."));
+  }, 10000);
+}
+
 const gcPair = (a, b) => [a, b].sort().join("_");
 
 function gcTile(uid, name, stream, mine){
@@ -3240,6 +3262,7 @@ function gcRemoveTile(uid){
 async function gcConnectTo(peerUid, initiator){
   if (!gc || gc.peers.has(peerUid)) return;
   const pc = new RTCPeerConnection(ICE);
+  iceDiag(pc, "группа");
   const entry = { pc, subs: [] };
   gc.peers.set(peerUid, entry);
   gc.stream.getTracks().forEach(tr => pc.addTrack(tr, gc.stream));
@@ -3365,6 +3388,7 @@ async function startCall(peer, video){
   const local = await media(video); if (!local) return;
   const ref = doc(collection(db, "calls"));
   const pc = new RTCPeerConnection(ICE);
+  iceDiag(pc, "1-на-1");
   call = { id: ref.id, pc, local, remote: new MediaStream(), role: "caller", video, peer, unsubs: [], pending: [], t0: 0 };
   callUI(peer, video, "Звоню…"); attach();
   local.getTracks().forEach(t => pc.addTrack(t, local));
@@ -3411,6 +3435,7 @@ $("rYes").onclick = async () => {
   if (!d || !d.offer) { toast("Звонок сорвался"); return; }
   const local = await media(!!d.video); if (!local) { try { await updateDoc(K(id), { state: "declined" }); } catch (_) {} return; }
   const pc = new RTCPeerConnection(ICE);
+  iceDiag(pc, "приём");
   const peer = { uid: d.from, name: d.fromName, nick: d.fromNick, photo: d.fromPhoto };
   call = { id, pc, local, remote: new MediaStream(), role: "callee", video: !!d.video, peer, unsubs: [], pending: [], t0: 0 };
   callUI(peer, !!d.video, "Соединение…"); attach();
