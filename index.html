@@ -3203,17 +3203,20 @@ function iceDiag(pc, label){
     else if (c.includes(" typ srflx")) st.srflx++;
     else if (c.includes(" typ host")) st.host++;
   });
-  setTimeout(() => {
-    const ok = ["connected", "completed"].includes(pc.iceConnectionState);
-    if (ok || st.shown) return;
+  let tries = 0;
+  const check = () => {
+    const state = pc.iceConnectionState;
+    if (["connected", "completed"].includes(state) || st.shown) return;
+    if (state === "new") { if (++tries < 6) setTimeout(check, 10000); return; }
     st.shown = true;
     alert("ЗВОНОК НЕ СОЕДИНИЛСЯ (" + label + ")\n" +
-      "Состояние: " + pc.iceConnectionState + "\n" +
+      "Состояние: " + state + "\n" +
       "Кандидаты — прямые: " + st.host + ", через NAT: " + st.srflx + ", через TURN: " + st.relay + "\n\n" +
       (st.relay === 0
         ? "TURN-кандидатов НЕТ — ретранслятор недоступен из твоей сети. Пришли этот текст."
         : "TURN есть, но связь не собралась. Пришли этот текст."));
-  }, 10000);
+  };
+  setTimeout(check, 10000);
 }
 
 const gcPair = (a, b) => [a, b].sort().join("_");
