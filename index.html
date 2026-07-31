@@ -794,7 +794,7 @@ function langPickScreen(afterPick){
 }
 
 
-const KW_BUILD = "v51";
+const KW_BUILD = "v52";
 try { if (localStorage.getItem("kwTheme") === "light") document.body.classList.add("light"); } catch (_) {}
 const ICE = {
   iceServers: [
@@ -3195,7 +3195,7 @@ async function pushSetup(){
 let gc = null; // { chatId, stream, peers:Map<uid,{pc,subs:[]}>, subs:[], mic:true, cam:true }
 
 function iceDiag(pc, label){
-  const st = { host: 0, srflx: 0, relay: 0, shown: false };
+  const st = { host: 0, srflx: 0, relay: 0, shown: false, okShown: false };
   pc.addEventListener("icecandidate", e => {
     if (!e.candidate) return;
     const c = e.candidate.candidate || "";
@@ -3203,18 +3203,54 @@ function iceDiag(pc, label){
     else if (c.includes(" typ srflx")) st.srflx++;
     else if (c.includes(" typ host")) st.host++;
   });
-  let tries = 0;
-  const check = () => {
-    const state = pc.iceConnectionState;
-    if (["connected", "completed"].includes(state) || st.shown) return;
-    if (state === "new") { if (++tries < 6) setTimeout(check, 10000); return; }
-    st.shown = true;
+  async function showPath(){
+    if (st.okShown) return; st.okShown = true;
+    try {
+      const stats = await pc.getStats();
+      let pairId = null, cands = {};
+      stats.forEach(r => {
+        if (r.type === "transport" && r.selectedCandidatePairId) pairId = r.selectedCandidatePairId;
+        if (r.type === "candidate-pair" && r.selected) pairId = r.id;
+      });
+      let local = null;
+      stats.forEach(r => { if (pairId && r.id === pairId) local = r.localCandidateId; });
+      let typ = "", proto = "";
+      stats.forEach(r => { if (local && r.id === local) { typ = r.candidateType || ""; proto = r.relayProtocol || r.protocol || ""; } });
+      toast("Связь установлена: " + (typ === "relay" ? "через TURN (" + proto + ")" : (typ || "напрямую")));
+    } catch (_) { toast("Связь установлена"); }
+  }
+  const fail = (state) => {
+    if (st.shown) return; st.shown = true;
     alert("ЗВОНОК НЕ СОЕДИНИЛСЯ (" + label + ")\n" +
+      "Моя сборка: " + KW_BUILD + "\n" +
       "Состояние: " + state + "\n" +
       "Кандидаты — прямые: " + st.host + ", через NAT: " + st.srflx + ", через TURN: " + st.relay + "\n\n" +
       (st.relay === 0
-        ? "TURN-кандидатов НЕТ — ретранслятор недоступен из твоей сети. Пришли этот текст."
-        : "TURN есть, но связь не собралась. Пришли этот текст."));
+        ? "TURN-кандидатов НЕТ — ретранслятор недоступен из этой сети. Пришли этот текст."
+        : "TURN есть, но связь не собралась. Пришли этот текст (с обоих телефонов)."));
+  };
+  let discTimer = null;
+  pc.addEventListener("iceconnectionstatechange", () => {
+    const state = pc.iceConnectionState;
+    if (["connected", "completed"].includes(state)) { clearTimeout(discTimer); showPath(); }
+    else if (state === "failed") fail("failed");
+    else if (state === "disconnected") {
+      clearTimeout(discTimer);
+      discTimer = setTimeout(() => {
+        if (pc.iceConnectionState === "disconnected") fail("disconnected (12с)");
+      }, 12000);
+    }
+  });
+  // страховка: если за 25с после старта проверок так и не собралось
+  let tries = 0;
+  const check = () => {
+    const state = pc.iceConnectionState;
+    if (["connected", "completed", "failed", "closed"].includes(state) || st.shown) return;
+    if (state === "new") { if (++tries < 6) setTimeout(check, 10000); return; }
+    setTimeout(() => {
+      const s2 = pc.iceConnectionState;
+      if (!["connected", "completed", "closed"].includes(s2) && !st.shown) fail(s2 + " (25с)");
+    }, 25000);
   };
   setTimeout(check, 10000);
 }
