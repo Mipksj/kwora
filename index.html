@@ -3712,6 +3712,9 @@ function drawMe(){
   }
 
   l8.append(ob); out.append(l8); box.append(out);
+  const ver = el("div", null, "студия g2 · " + KW_BUILD);
+  ver.style.cssText = "text-align:center;font-size:11px;color:var(--dim);opacity:.7;padding:10px 0 2px";
+  box.append(ver);
   __route = null;
 
   // приглашение в Bot Creator (если ещё не присоединился)
