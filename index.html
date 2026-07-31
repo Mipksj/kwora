@@ -794,19 +794,20 @@ function langPickScreen(afterPick){
 }
 
 
-const KW_BUILD = "v49";
+const KW_BUILD = "v50";
 try { if (localStorage.getItem("kwTheme") === "light") document.body.classList.add("light"); } catch (_) {}
 const ICE = {
   iceServers: [
     { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"] },
     {
       urls: [
-        "turn:openrelay.metered.ca:80",
-        "turn:openrelay.metered.ca:443",
-        "turns:openrelay.metered.ca:443?transport=tcp"
+        "turn:standard.relay.metered.ca:80",
+        "turn:standard.relay.metered.ca:80?transport=tcp",
+        "turn:standard.relay.metered.ca:443",
+        "turns:standard.relay.metered.ca:443?transport=tcp"
       ],
-      username: "openrelayproject",
-      credential: "openrelayproject"
+      username: "1af0818068899d08d3e91782",
+      credential: "b1AKj92m63Jje4jl"
     }
   ],
   iceCandidatePoolSize: 10
