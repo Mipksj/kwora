@@ -1,15 +1,18 @@
 {
-  "id": "/kwora/",
   "name": "Kwora",
   "short_name": "Kwora",
-  "description": "Kwora — мессенджер: чаты, группы, звонки и боты.",
-  "start_url": "/kwora/",
-  "scope": "/kwora/",
+  "description": "Мессенджер с групповыми видеозвонками, ботами и голосовыми сообщениями",
+  "lang": "ru",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "id": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait",
   "background_color": "#0C0D11",
   "theme_color": "#0C0D11",
-  "lang": "ru",
+  "categories": ["social", "communication"],
   "icons": [
     {
       "src": "icon-192.png",
@@ -22,12 +25,6 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
-    },
-    {
-      "src": "icon-512-maskable.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
     }
   ]
 }
