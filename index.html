@@ -816,7 +816,7 @@ function langPickScreen(afterPick){
 }
 
 
-const KW_BUILD = "v56";
+const KW_BUILD = "v57";
 try { if (localStorage.getItem("kwTheme") === "light") document.body.classList.add("light"); } catch (_) {}
 const ICE = {
   iceServers: [
@@ -2150,6 +2150,7 @@ function paint(){
   $("chat").classList.add("on");
   document.body.classList.add("in-chat");
   setTimeout(tourChat, 700);
+  trayClear();
   $("msgs").replaceChildren();
   head(); gate();
 }
@@ -2162,7 +2163,8 @@ function head(){
   if (f.verified) n.append(tick());
   $("peerSub").textContent = c.type === "group" ? (c.members || []).length + T("members") : "@" + (f.nick || "");
   const grp = c.type === "group";
-  const isbot = !!(c.isBot || (c.peer && c.peer.isBot));
+  const peerU = grp ? null : cache.get(peerOf(c));
+  const isbot = !!(peerU && peerU.isBot);
   $("callA").classList.toggle("hide", grp || isbot);
   $("callV").classList.toggle("hide", grp || isbot);
   const gb = $("gcBtn");
@@ -2801,6 +2803,7 @@ async function trayAdd(files, kind){
   const room = ALB_MAX - pend.length;
   if (room <= 0) { toast("Не больше " + ALB_MAX + " вложений"); return; }
   const list = Array.from(files).slice(0, room);
+  if (!list.length) { toast("Галерея не вернула файл"); return; }
   if (files.length > room) toast("Взял первые " + room + " — лимит " + ALB_MAX);
   for (const f of list) {
     if (kind === "vid") {
@@ -2812,7 +2815,7 @@ async function trayAdd(files, kind){
         // чем больше фото в альбоме, тем компактнее каждое — иначе не влезет в документ
         const many = (pend.length + list.length) > 1;
         pend.push({ t: "img", u: await shrink(f, many ? 1100 : 1280, many ? 170000 : 360000) });
-      } catch (_) { toast("Не получилось прочитать картинку"); }
+      } catch (err) { toast("Картинка не открылась: " + ((err && err.message) || err)); }
     }
     trayDraw();
   }
@@ -2862,8 +2865,11 @@ async function sendTray(){
     await updateDoc(C(active.id), { lastText: (caption || label).slice(0, 80), lastFrom: me.uid, lastAt: serverTimestamp() });
   } catch (e) {
     if (prog) prog.remove();
-    toast(e && e.code === "permission-denied" ? T("notDelivered") : say(e));
+    toast(e && e.code === "permission-denied"
+      ? "Вложение отклонено правилами Firestore (поле album)"
+      : ("Не отправилось: " + ((e && e.message) || e)));
   }
+  $("send").disabled = !ta.value.trim() && !pend.length;
 }
 
 async function post(img){
@@ -4741,6 +4747,37 @@ function botEditor(b){
   rowA.append(asBot); d.append(rowA);
 
   if (b.botOwner === me.uid) {
+    d.append(el("div", "cap", "Доступ к боту"));
+    const acl = el("div"); d.append(acl);
+    const drawAcl = async () => {
+      acl.replaceChildren();
+      let arr = [];
+      try {
+        const fresh = await getDoc(U(b.uid));
+        arr = (fresh.exists() ? (fresh.data().botAdmins || []) : []);
+        b.botAdmins = arr;
+      } catch (_) {}
+      if (!arr.length) { acl.append(el("div", "blank", "Доступ есть только у вас.")); return; }
+      for (const uid of arr) {
+        const p = await profile(uid);
+        const row = el("div", "chk");
+        row.append(ava(p, 34));
+        const m = el("div", "grow");
+        m.append(el("div", "t1 ell", p.name || p.nick));
+        m.append(el("div", "t2 mono ell", "@" + p.nick));
+        row.append(m);
+        const rm = el("button", "pill red", "Убрать");
+        rm.onclick = async () => {
+          rm.disabled = true;
+          try { await callRevokeBot({ bot: b.uid, who: uid }); toast("Доступ убран"); drawAcl(); }
+          catch (e) { toast(fbErr(e)); rm.disabled = false; }
+        };
+        row.append(rm);
+        acl.append(row);
+      }
+    };
+    drawAcl();
+
     const rowS = el("div", "row"); rowS.style.marginTop = "8px";
     const sh = el("button", "ghost", "Поделиться доступом");
     sh.onclick = () => shareBotDialog(b);
@@ -4748,7 +4785,7 @@ function botEditor(b){
   }
 
   const row = el("div", "row");
-  const back = el("button", "ghost", "Назад"); back.onclick = () => go("bots");
+  const back = el("button", "ghost", "Назад"); back.onclick = () => { closeDlg(); go("bots"); };
   const open = el("button", "cta", "Открыть чат");
   open.onclick = () => { closeDlg(); openDM(b); };
   row.append(back, open); d.append(row);
@@ -4831,6 +4868,7 @@ const callBotSend = httpsCallable(fns, "botSend");
 const callBotCast = httpsCallable(fns, "botBroadcast");
 const callShareBot = httpsCallable(fns, "shareBotAccess");
 const callBotDecide = httpsCallable(fns, "botAccessDecide");
+const callRevokeBot = httpsCallable(fns, "revokeBotAccess");
 
 let BM = null; // { bot, chat, timer }
 
