@@ -794,7 +794,7 @@ function langPickScreen(afterPick){
 }
 
 
-const KW_BUILD = "v52";
+const KW_BUILD = "v53";
 try { if (localStorage.getItem("kwTheme") === "light") document.body.classList.add("light"); } catch (_) {}
 const ICE = {
   iceServers: [
@@ -826,6 +826,7 @@ const callMailConfirm = httpsCallable(fns, "mailAuthConfirm");
 const callPassLogin = httpsCallable(fns, "passLogin");
 const callSetPass = httpsCallable(fns, "setMyPass");
 const callHasPass = httpsCallable(fns, "hasPass");
+const callChangePass = httpsCallable(fns, "changeMyPass");
 const PASS_RE = /^(?=.*[A-Za-z])(?=.*\d)[\x21-\x7E]{6,64}$/;
 try { document.getElementById("studio").textContent = "студия g2 · " + KW_BUILD; } catch (_) {}
 const callClaimBadge = httpsCallable(fns, "claimBotBadge");
@@ -1244,7 +1245,7 @@ $("go").onclick = async () => {
   try {
     const r = (await callPassLogin({ mail, password })).data;
     if (r.pick) {
-      FG.mail = mail; FG.passForPick = password; FG.accounts = r.accounts;
+      FG.mail = mail; FG.passForPick = password; FG.mode = "pass"; FG.accounts = r.accounts;
       fgStepAccounts();
     } else if (r.token) {
       await signInWithCustomToken(auth, r.token);
@@ -1258,7 +1259,7 @@ $("forgotBtn").onclick = async () => {
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) { $("note").textContent = "Сначала введи почту сверху"; return; }
   $("note").textContent = "";
   $("go").disabled = true;
-  try { await callMailStart({ mail }); FG.mail = mail; FG.forceSetPass = true; fgStepCode(); }
+  try { await callMailStart({ mail }); FG.mail = mail; FG.passForPick = ""; FG.wantReg = false; FG.mode = "reset"; fgStepCode(); }
   catch (e) { $("note").textContent = fbErr(e); }
   $("go").disabled = false;
 };
@@ -1268,14 +1269,14 @@ $("regBtn").onclick = async () => {
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) { $("note").textContent = "Введи почту сверху — пришлём код для регистрации"; return; }
   $("note").textContent = "";
   $("go").disabled = true;
-  try { await callMailStart({ mail }); FG.mail = mail; FG.wantReg = true; fgStepCode(); }
+  try { await callMailStart({ mail }); FG.mail = mail; FG.passForPick = ""; FG.mode = "reg"; FG.wantReg = true; fgStepCode(); }
   catch (e) { $("note").textContent = fbErr(e); }
   $("go").disabled = false;
 };
 
 
 /* ============ ЗАБЫЛ ПАРОЛЬ / ВЫБОР АККАУНТА ============ */
-const FG = { mail: "", code: "", accounts: [] };
+const FG = { mail: "", code: "", accounts: [], mode: "", passForPick: "" };
 
 function fgShow(title, sub){
   $("auth").classList.add("hide");
@@ -1360,7 +1361,10 @@ function fgStepAccounts(){
     mid.append(t1);
     mid.append(el("div", "t2 mono ell", "@" + a.nick));
     row.append(mid);
-    row.onclick = () => (FG.passForPick ? passDo(a, row) : fgDo(a, row));
+    row.onclick = () => {
+      if (FG.mode === "reset") return fgStepNewPass(a);
+      return FG.passForPick ? passDo(a, row) : fgDo(a, row);
+    };
     b.append(row);
   }
   const err = el("div", "note"); err.id = "fgErr"; b.append(err);
@@ -1369,6 +1373,48 @@ function fgStepAccounts(){
     add.onclick = fgStepRegister;
     b.append(add);
   }
+}
+
+/* шаг 3б: новый пароль (восстановление доступа) */
+function fgStepNewPass(a){
+  fgShow("Новый пароль", "Для @" + a.nick + " · минимум 6 знаков, латиница и цифры");
+  const b = $("fgBody"); b.replaceChildren();
+
+  const who = el("div", "item"); who.style.padding = "9px 2px";
+  who.append(ava(a, 46));
+  const mid = el("div", "grow");
+  const t1 = el("div", "t1 ell"); t1.append(el("span", "ell", a.name || a.nick)); if (a.verified) t1.append(tick());
+  mid.append(t1);
+  mid.append(el("div", "t2 mono ell", "@" + a.nick));
+  who.append(mid); b.append(who);
+
+  const f1 = passField("новый пароль", "new-password"); b.append(f1.box);
+  const f2 = passField("ещё раз", "new-password"); b.append(f2.box);
+  const err = el("div", "note"); err.id = "fgErr"; b.append(err);
+
+  const ok = el("button", "cta", "Сохранить и войти");
+  ok.onclick = async () => {
+    err.textContent = "";
+    if (!PASS_RE.test(f1.input.value)) { err.textContent = "Минимум 6 символов, латинские буквы и цифры."; return; }
+    if (f1.input.value !== f2.input.value) { err.textContent = "Пароли не совпадают."; return; }
+    ok.disabled = true;
+    try {
+      const r = await callMailConfirm({
+        mail: FG.mail, code: FG.code, action: "reset",
+        uid: a.uid, newPassword: f1.input.value
+      });
+      const token = r.data && r.data.token;
+      if (!token) throw new Error("Токен не получен");
+      $("forgot").classList.add("hide");
+      $("splash").classList.remove("hide");
+      await signInWithCustomToken(auth, token);
+    } catch (e) { err.textContent = fbErr(e); ok.disabled = false; }
+  };
+  b.append(ok);
+
+  const back = el("button", "ghost", T("toList")); back.style.marginTop = "8px";
+  back.onclick = fgStepAccounts; b.append(back);
+  setTimeout(() => f1.input.focus(), 100);
 }
 
 /* регистрация нового аккаунта на эту почту */
@@ -3603,6 +3649,18 @@ function drawMe(){
   const who = el("div", "who");
   const n = el("div", "n"); n.append(el("span", null, me.name || me.nick)); if (me.verified) n.append(tick()); who.append(n);
   who.append(el("div", "u", "@" + me.nick));
+  const myBg = (me.badges || []).map(id => badgeCat.find(x => x.id === id)).filter(Boolean);
+  if (myBg.length) {
+    const bgRow = el("div", "badgerow");
+    bgRow.style.cssText = "justify-content:center;margin-top:9px";
+    for (const bb of myBg) {
+      if (!bb.img) continue;
+      const im = document.createElement("img");
+      im.src = bb.img; im.className = "badge"; im.title = bb.name || ""; im.alt = "";
+      bgRow.append(im);
+    }
+    if (bgRow.childNodes.length) who.append(bgRow);
+  }
   box.append(who);
 
   function section(title){
@@ -3619,18 +3677,6 @@ function drawMe(){
   let __route = null;
   box.append = (...xs) => (__route ? __route.append(...xs) : _ba(...xs));
   __route = secP;
-
-  const myBadges = (me.badges || []).map(id => badgeCat.find(b => b.id === id)).filter(Boolean);
-  if (myBadges.length) {
-    { const t = __route; __route = null; box.append(el("div", "cap", T("myBadges"))); __route = t; }
-    const card = el("div", "card"); const row = el("div", "pf-badges"); row.style.padding = "14px";
-    for (const b of myBadges) {
-      const cell = el("div", "pf-badge");
-      if (b.img) { const im = document.createElement("img"); im.src = b.img; im.alt = ""; cell.append(im); }
-      cell.append(el("span", null, b.name || "")); row.append(cell);
-    }
-    card.append(row); { const t = __route; __route = null; box.append(card); __route = t; }
-  }
 
   const c1 = el("div", "card");
   const l1 = el("div", "line"); l1.append(el("div", "k", T("fName")));
@@ -3651,6 +3697,10 @@ function drawMe(){
   const c2 = el("div", "card");
   const l3 = el("div", "line"); const mm = el("div", "grow"); mm.append(el("div", "k", T("fMail"))); mm.append(el("div", "v ell", me.mail || "")); l3.append(mm);
   const ch = el("button", "pill", T("change")); ch.onclick = changeMail; l3.append(ch); c2.append(l3);
+  const lpw = el("div", "line"); const pwm = el("div", "grow");
+  pwm.append(el("div", "k", "Пароль")); pwm.append(el("div", "v", "••••••"));
+  lpw.append(pwm);
+  const cpw = el("button", "pill", T("change")); cpw.onclick = changePass; lpw.append(cpw); c2.append(lpw);
   const l5 = el("div", "line"); const vv = el("div", "grow"); vv.append(el("div", "k", T("fTick"))); vv.append(el("div", "v", me.verified ? T("tickYes") : (me.verifyAsked ? T("tickAsk") : T("tickNo")))); l5.append(vv);
   if (!me.verified && !me.verifyAsked) { const a = el("button", "pill", T("apply")); a.onclick = async () => { try { await updateDoc(U(me.uid), { verifyAsked: true, verifyAt: serverTimestamp() }); toast(T("appSent")); } catch (e) { toast(say(e)); } }; l5.append(a); }
   c2.append(l5); box.append(c2);
@@ -3682,6 +3732,10 @@ function drawMe(){
   l7.append(all, fro); c3.append(l7); box.append(c3);
 
   const out = el("div", "card");
+  const lsw = el("div", "line");
+  const swb = el("button", "grow", "Сменить аккаунт"); swb.style.textAlign = "left";
+  swb.onclick = switchAccount;
+  lsw.append(swb); out.append(lsw);
   const l8 = el("div", "line"); const ob = el("button", "grow danger", T("logout")); ob.style.textAlign = "left";
   ob.onclick = async () => { stopAll(); await signOut(auth); };
   const tc = el("div", "card"); const tl = el("div", "line");
@@ -3763,6 +3817,114 @@ $("pickAva").onchange = async e => {
     await updateDoc(U(me.uid), { photo: data }); toast(T("avaUpd"));
   } catch (_) { toast("Не получилось прочитать картинку"); }
 };
+
+function changePass(){
+  const d = $("dlg"); d.replaceChildren();
+  d.append(el("h3", null, "Изменить пароль"));
+  d.append(el("p", null, "Введи текущий пароль, потом новый. Минимум 6 знаков, латинские буквы и цифры."));
+  const f0 = passField("текущий пароль", "current-password"); d.append(f0.box);
+  const f1 = passField("новый пароль", "new-password"); d.append(f1.box);
+  const f2 = passField("новый ещё раз", "new-password"); d.append(f2.box);
+  const err = el("div", "note"); d.append(err);
+  const row = el("div", "row");
+  const no = el("button", "ghost", T("cancel")); no.onclick = closeDlg;
+  const ok = el("button", "cta", T("save"));
+  ok.onclick = async () => {
+    err.textContent = "";
+    if (!f0.input.value) { err.textContent = "Введи текущий пароль."; return; }
+    if (!PASS_RE.test(f1.input.value)) { err.textContent = "Новый пароль: минимум 6 символов, латинские буквы и цифры."; return; }
+    if (f1.input.value !== f2.input.value) { err.textContent = "Новые пароли не совпадают."; return; }
+    if (f0.input.value === f1.input.value) { err.textContent = "Новый пароль совпадает со старым."; return; }
+    ok.disabled = true;
+    try {
+      await callChangePass({ oldPassword: f0.input.value, newPassword: f1.input.value });
+      closeDlg(); toast("Пароль изменён");
+    } catch (e) { err.textContent = fbErr(e); ok.disabled = false; }
+  };
+  row.append(no, ok); d.append(row);
+  $("modal").classList.add("on");
+}
+
+/* переключение между аккаунтами одной почты */
+async function switchAccount(){
+  const d = $("dlg"); d.replaceChildren();
+  d.append(el("h3", null, "Сменить аккаунт"));
+  d.append(el("p", null, "Аккаунты на почте " + maskMail(me.mail || "") + ". На одну почту — не больше " + MAX_PER_MAIL + "."));
+  const list = el("div"); d.append(list);
+  list.append(el("div", "line", "Загружаю…"));
+  const err = el("div", "note"); d.append(err);
+  const row = el("div", "row");
+  const no = el("button", "ghost", T("close")); no.onclick = closeDlg;
+  row.append(no); d.append(row);
+  $("modal").classList.add("on");
+
+  const mail = me.mail || "";
+  const low = me.mailLow || mail.toLowerCase();
+  try {
+    const s = await getDocs(query(collection(db, "users"), where("mailLow", "==", low), limit(MAX_PER_MAIL + 2)));
+    const arr = s.docs.map(x => x.data()).filter(u => !u.isBot);
+    list.replaceChildren();
+    for (const a of arr) {
+      const r = el("button", "item"); r.style.padding = "8px 2px"; r.style.borderRadius = "14px";
+      r.append(ava(a, 42));
+      const m = el("div", "grow");
+      const t1 = el("div", "t1 ell"); t1.append(el("span", "ell", a.name || a.nick)); if (a.verified) t1.append(tick());
+      m.append(t1);
+      m.append(el("div", "t2 mono ell", "@" + a.nick));
+      r.append(m);
+      if (a.uid === me.uid) { r.append(el("div", "pill on", "Сейчас")); r.onclick = closeDlg; }
+      else r.onclick = () => switchTo(a, mail);
+      list.append(r);
+    }
+    if (arr.length < MAX_PER_MAIL) {
+      const add = el("button", "ghost", "+ Создать ещё аккаунт"); add.style.marginTop = "10px";
+      add.onclick = async () => {
+        add.disabled = true; err.textContent = "";
+        try {
+          await callMailStart({ mail });
+          closeDlg(); stopAll(); await signOut(auth);
+          setTimeout(() => {
+            FG.mail = mail; FG.code = ""; FG.accounts = [];
+            FG.passForPick = ""; FG.mode = "reg"; FG.wantReg = true;
+            fgStepCode();
+          }, 500);
+        } catch (e) { err.textContent = fbErr(e); add.disabled = false; }
+      };
+      list.append(add);
+    } else {
+      list.append(el("div", "cap", "Лимит " + MAX_PER_MAIL + " аккаунтов на почту исчерпан"));
+    }
+  } catch (e) { list.replaceChildren(el("div", "line", say(e))); }
+}
+
+function switchTo(a, mail){
+  const d = $("dlg"); d.replaceChildren();
+  d.append(el("h3", null, "Войти как @" + a.nick));
+  d.append(el("p", null, "Введи пароль этого аккаунта."));
+  const f = passField("пароль", "current-password"); d.append(f.box);
+  const err = el("div", "note"); d.append(err);
+  const row = el("div", "row");
+  const no = el("button", "ghost", T("back")); no.onclick = switchAccount;
+  const ok = el("button", "cta", T("enter"));
+  ok.onclick = async () => {
+    err.textContent = "";
+    if (!f.input.value) { err.textContent = "Введи пароль."; return; }
+    ok.disabled = true;
+    try {
+      const r = await callPassLogin({ mail, password: f.input.value, uid: a.uid });
+      const token = r.data && r.data.token;
+      if (!token) throw new Error("Токен не получен");
+      closeDlg();
+      stopAll();
+      $("auth").classList.add("hide");
+      $("splash").classList.remove("hide");
+      await signInWithCustomToken(auth, token);
+    } catch (e) { err.textContent = fbErr(e); ok.disabled = false; }
+  };
+  row.append(no, ok); d.append(row);
+  $("modal").classList.add("on");
+  setTimeout(() => f.input.focus(), 100);
+}
 
 function changeMail(){
   const d = $("dlg"); d.replaceChildren();
