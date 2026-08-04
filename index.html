@@ -131,6 +131,8 @@ img{display:block;max-width:100%}
 .ava img{width:100%;height:100%;object-fit:cover}
 .ava.friend{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--b1)}
 .ava.grp{border-radius:32%}
+.ava.pinned{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--gold)}
+.pinchip{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;color:var(--gold);background:rgba(245,180,65,.15);padding:2px 7px;border-radius:7px;flex:none}
 .tick{width:15px;height:15px;flex:none}
 
 .tabs{display:flex;flex:none;position:absolute;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:40;background:rgba(26,28,36,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.07);border-radius:999px;box-shadow:0 10px 34px rgba(0,0,0,.5);padding:4px 6px}
@@ -599,8 +601,8 @@ body.light .bub.them{color:var(--tx)}
 
 <input type="file" id="pickAva" accept="image/*" class="hide">
 <input type="file" id="pickBnr" accept="image/*" class="hide">
-<input type="file" id="pickVid" accept="video/*" multiple class="hide">
-<input type="file" id="pickImg" accept="image/*" multiple class="hide">
+<input type="file" id="pickVid" accept="video/*" class="hide">
+<input type="file" id="pickImg" accept="image/*" class="hide">
 <input type="file" id="pickGrp" accept="image/*" class="hide">
 <input type="file" id="pickBadge" accept="image/*" class="hide">
 
@@ -816,7 +818,7 @@ function langPickScreen(afterPick){
 }
 
 
-const KW_BUILD = "v57";
+const KW_BUILD = "v59";
 try { if (localStorage.getItem("kwTheme") === "light") document.body.classList.add("light"); } catch (_) {}
 const ICE = {
   iceServers: [
@@ -1697,7 +1699,7 @@ async function start(p){
     pinnedBots = s.docs.map(d => ({ uid: d.id, ...d.data() }));
     pinnedBots.forEach(b => cache.set(b.uid, b));
     if (tab === "chats") drawChats();
-  }, () => {}));
+  }, e => { window.__lastErr = "pinned: " + say(e); }));
 
   subs.push(onSnapshot(collection(db, "badges"), s => {
     badgeCat = s.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -1789,32 +1791,40 @@ function drawChats(){
   const box = $("listChats"); box.replaceChildren();
   const vis = chats.filter(c => c.type === "group" || !blocks.has(peerOf(c)));
 
-  const have = new Set(chats.filter(c => c.type !== "group").map(c => peerOf(c)));
-  const showPins = pinnedBots.filter(b => b.uid !== me.uid && !have.has(b.uid) && !blocks.has(b.uid));
+  const pinIds = new Set(pinnedBots.map(b => b.uid));
+  const chatOf = {};
+  chats.forEach(c => { if (c.type !== "group") chatOf[peerOf(c)] = c; });
+
+  const showPins = pinnedBots.filter(b => b.uid !== me.uid && !blocks.has(b.uid));
   for (const b of showPins) {
+    const c = chatOf[b.uid];
     const row = el("button", "item");
-    row.append(ava(b, 50));
+    const a = ava(b, 50); a.classList.add("pinned"); row.append(a);
     const mid = el("div", "grow");
     const t1 = el("div", "t1 ell");
     t1.append(el("span", "ell", b.name || b.nick));
     if (b.verified) t1.append(tick());
-    const pin = el("span", null, "закреплён");
-    pin.style.cssText = "font-size:10px;font-weight:600;color:var(--gold);background:rgba(245,180,65,.14);padding:2px 7px;border-radius:7px";
+    const pin = el("span", "pinchip");
+    pin.innerHTML = '<svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2l8 8-3 1-1 5-5-5-6 6-1-1 6-6-5-5 5-1z"/></svg>';
+    pin.append(document.createTextNode("закреплён"));
     t1.append(pin);
     mid.append(t1);
-    mid.append(el("div", "t2 ell", b.bio || "Бот"));
+    mid.append(el("div", "t2 ell", c && c.lastText ? ((c.lastFrom === me.uid ? T("you") : "") + c.lastText) : (b.bio || "Бот")));
     row.append(mid);
-    row.onclick = () => openDM(b);
+    if (c) row.append(el("div", "time", shortT(c.lastAt)));
+    row.onclick = () => (c ? openChat(c) : openDM(b));
     box.append(row);
   }
 
-  if (!vis.length && !showPins.length) {
+  const rest = vis.filter(c => c.type === "group" || !pinIds.has(peerOf(c)));
+
+  if (!rest.length && !showPins.length) {
     const b = el("div", "blank");
     b.append(el("b", null, T("emptyTitle")));
     b.append(document.createTextNode(T("emptyText")));
     box.append(b); return;
   }
-  for (const c of vis) {
+  for (const c of rest) {
     const f = face(c);
     const row = el("button", "item");
     row.append(ava(f, 50));
@@ -2793,7 +2803,14 @@ function trayDraw(){
   });
   if (pend.length < ALB_MAX) {
     const add = el("button", "tr-add", "＋");
-    add.onclick = () => $("pickImg").click();
+    add.onclick = () => {
+      const b = $("sheetBody"); b.replaceChildren();
+      const mk2 = (label, fn) => { const x = el("button", null, label); x.onclick = () => { hideSheet(); fn(); }; b.append(x); };
+      mk2("Ещё фото", () => $("pickImg").click());
+      mk2("Видео", () => $("pickVid").click());
+      const c = el("button", null, T("cancel")); c.onclick = hideSheet; b.append(c);
+      showSheet();
+    };
     t.append(add);
   }
   ta.placeholder = "Подпись…";
@@ -3013,12 +3030,13 @@ async function openProfile(uid){
     if (p.isBot) {
       const pn = el("button", null, p.pinned ? "Открепить бота" : "Закрепить бота");
       pn.onclick = async () => {
+        pn.disabled = true;
         try {
-          await updateDoc(U(uid), { pinned: !p.pinned });
+          await callPinBot({ bot: uid, on: !p.pinned });
           cache.delete(uid);
           toast(p.pinned ? "Бот откреплён" : "Бот закреплён у всех");
           closeProfile();
-        } catch (e) { toast(say(e)); }
+        } catch (e) { toast(fbErr(e)); pn.disabled = false; }
       };
       act.append(pn);
     }
@@ -4869,6 +4887,7 @@ const callBotCast = httpsCallable(fns, "botBroadcast");
 const callShareBot = httpsCallable(fns, "shareBotAccess");
 const callBotDecide = httpsCallable(fns, "botAccessDecide");
 const callRevokeBot = httpsCallable(fns, "revokeBotAccess");
+const callPinBot = httpsCallable(fns, "pinBot");
 
 let BM = null; // { bot, chat, timer }
 
@@ -5007,7 +5026,8 @@ async function bmChat(c, p){
 function bmCast(){
   const d = $("dlg"); d.replaceChildren();
   d.append(el("h3", null, "Отправить всем"));
-  d.append(el("p", null, "Сообщение придёт каждому пользователю Kwora от лица @" + BM.bot.nick + ". Отменить нельзя."));
+  d.append(el("p", null, "Сообщение придёт каждому пользователю Kwora от лица @" + BM.bot.nick
+    + ". Отменить нельзя. Нужен закреплённый бот или права админа, и не чаще раза в минуту."));
   const box = el("div", "inp");
   const t = document.createElement("textarea"); t.rows = 4; t.style.resize = "none"; t.maxLength = 2000;
   t.placeholder = "Текст рассылки";
@@ -5025,7 +5045,13 @@ function bmCast(){
       const r = (await callBotCast({ bot: BM.bot.uid, text })).data;
       closeDlg(); toast("Разослано: " + r.sent);
       bmList();
-    } catch (e) { err.textContent = fbErr(e); busy1(ok, false); }
+    } catch (e) {
+      const m = fbErr(e);
+      err.textContent = /internal/i.test(m)
+        ? "Функция botBroadcast не найдена на сервере — залей functions/index.js"
+        : m;
+      busy1(ok, false);
+    }
   };
   row.append(no, ok); d.append(row);
   $("modal").classList.add("on");
