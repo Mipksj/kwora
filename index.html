@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Kwora</title>
 <meta name="theme-color" content="#0C0D11" />
-<link rel="manifest" href="manifest.json" />
+<link rel="manifest" href="/manifest.json" />
 <link rel="apple-touch-icon" href="icon-192.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -926,14 +926,14 @@ function langPickScreen(afterPick){
 }
 
 
-const KW_BUILD = "v60";
+const KW_BUILD = "v61";
 
 /* ==================== РЕЖИМ: МОБИЛЬНЫЙ ИЛИ ВЕБ ====================
    web.kwora.ru — версия для компьютера, kwora.ru — для телефона.
    Файл один и тот же, различает себя по адресу.                     */
-const WEB = /^web\./i.test(location.hostname);
-const MOB_URL = "https://kwora.ru/";
-const WEB_URL = "https://web.kwora.ru/";
+const WEB = /(^|\/)web(\/|$)/i.test(location.pathname);
+const MOB_URL = location.origin + "/";
+const WEB_URL = location.origin + "/web/";
 const APP_MODE = (() => {
   try { return matchMedia("(display-mode: standalone)").matches || navigator.standalone === true; }
   catch (_) { return false; }
@@ -3699,7 +3699,7 @@ function pushBanner(){
 async function ensureSW(){
   if (!("serviceWorker" in navigator)) return null;
   try {
-    let reg = await navigator.serviceWorker.register("fcm-sw.js", { scope: "./" });
+    let reg = await navigator.serviceWorker.register("/fcm-sw.js", { scope: "/" });
     for (let i = 0; i < 40; i++) {
       if (reg && reg.active) return reg;
       await new Promise(r => setTimeout(r, 250));
@@ -5434,7 +5434,7 @@ function closeDlg(){ $("modal").classList.remove("on"); }
 /* PWA: регистрируем service worker (сеть в приоритете, кэш только офлайн) */
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-  navigator.serviceWorker.register("sw.js").then(r => {
+  navigator.serviceWorker.register("/sw.js", { scope: "/" }).then(r => {
     window.__swReg = r;
   }).catch(e => { window.__swErr = (e && e.message) || String(e); });
   });
