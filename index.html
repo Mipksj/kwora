@@ -11,6 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <style>
 :root{
   --bg:#0C0D11; --s1:#14161C; --s2:#1B1E27; --s3:#242833; --line:#282C38;
@@ -65,6 +66,85 @@ img{display:block;max-width:100%}
   #app{display:grid;grid-template-columns:370px 1fr;grid-template-rows:minmax(0,1fr)}
   .left{border-right:1px solid var(--line)}
 }
+
+/* ---- заглушка при неподходящем экране ---- */
+#wrongDev{position:fixed;inset:0;z-index:900;background:var(--bg);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:22px;padding:30px;text-align:center}
+.wd-box{display:flex;flex-direction:column;align-items:center;gap:10px}
+.wd-t{font-size:17px;font-weight:600;color:var(--tx)}
+.wd-a{font-size:18px;font-weight:600;color:#7B61FF;text-decoration:none;word-break:break-all}
+.wd-a:hover{text-decoration:underline}
+
+
+/* ==================== ВЕБ-ВЕРСИЯ: КОМПЬЮТЕР ==================== */
+html.web body{overflow:hidden}
+html.web .frame{max-width:none;height:100vh;border:none;background:rgba(12,13,17,.55)}
+html.web #qrAuth .pane,html.web #auth .pane{max-width:420px;margin:0 auto}
+
+/* три колонки: рейка · список · чат */
+@media(min-width:900px){
+  html.web #app{display:grid;grid-template-columns:84px 360px minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
+  html.web .left{grid-column:2;border-right:1px solid var(--line);border-left:1px solid var(--line)}
+  html.web #chat{grid-column:3;position:relative;inset:auto;transform:none;transition:none;z-index:1;background:transparent}
+
+  /* вертикальная рейка вкладок слева */
+  html.web .tabs{
+    grid-column:1;grid-row:1;position:static;flex-direction:column;justify-content:flex-start;
+    gap:6px;padding:16px 10px;border:none;border-radius:0;background:rgba(18,20,26,.6);
+    box-shadow:none;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+    border-right:1px solid var(--line);
+  }
+  html.web .tabs button{flex:none;width:64px;height:62px;border-radius:16px;gap:5px;font-size:10.5px;transition:background .16s,color .16s}
+  html.web .tabs button:hover{background:rgba(255,255,255,.05);color:var(--tx)}
+  html.web .tabs button.on{background:rgba(123,97,255,.16);color:var(--tx)}
+  html.web .dot{top:7px;right:11px}
+
+  /* список чатов шире и просторнее */
+  html.web .left .body{padding-bottom:10px}
+  html.web .item{padding:11px 14px;border-radius:14px;margin:1px 8px;transition:background .14s}
+  html.web .item:hover{background:rgba(255,255,255,.045)}
+  html.web .item.on{background:rgba(123,97,255,.14)}
+
+  /* переписка по центру, не во всю ширину — так читается лучше */
+  html.web #msgs{padding:22px max(28px,calc((100% - 900px)/2)) 14px}
+  html.web .bub{max-width:min(620px,74%)}
+  html.web #comp{padding:12px max(28px,calc((100% - 900px)/2)) 16px}
+  html.web #chatEmpty{font-size:15px}
+
+  /* на компьютере кнопка «назад» не нужна */
+  html.web #back{display:none}
+  html.web #chat .head{padding-left:20px}
+
+  /* мелочи: заметный фокус и аккуратные полосы прокрутки */
+  html.web .body::-webkit-scrollbar,html.web #msgs::-webkit-scrollbar{width:9px}
+  html.web .body::-webkit-scrollbar-thumb,html.web #msgs::-webkit-scrollbar-thumb{
+    background:rgba(255,255,255,.11);border-radius:9px;border:2px solid transparent;background-clip:content-box}
+  html.web .body::-webkit-scrollbar-thumb:hover,html.web #msgs::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.2);background-clip:content-box}
+  html.web button,html.web .item{cursor:pointer}
+}
+
+/* ---- вход по QR ---- */
+#qrAuth,#webLoad{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:26px}
+.qr-pane{text-align:center}
+.qr-wrap{margin:16px auto 6px;width:246px;height:246px;background:#fff;border-radius:16px;display:grid;place-items:center;box-shadow:0 10px 34px rgba(0,0,0,.4)}
+#qrC{display:block;border-radius:8px}
+.qr-or{margin-top:12px;font-size:12px;color:var(--dim)}
+.qr-code{margin-top:6px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:26px;font-weight:700;letter-spacing:.16em;color:var(--tx)}
+
+/* ---- сканер QR на телефоне ---- */
+#scanOv{position:fixed;inset:0;z-index:800;background:#000;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:14px;padding:24px}
+#scanOv video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+.sc-frame{position:relative;z-index:1;width:min(70vw,270px);height:min(70vw,270px);
+  border:3px solid rgba(255,255,255,.9);border-radius:22px;box-shadow:0 0 0 100vmax rgba(0,0,0,.55)}
+.sc-cap{position:relative;z-index:1;color:#fff;font-size:14px;text-align:center;max-width:280px}
+#scanOv button{position:relative;z-index:1;min-width:210px}
+.dev-n{font-size:17px;font-weight:600;color:var(--tx);text-align:center;margin:4px 0 12px}
+.warn-b{background:rgba(255,176,32,.12);border:1px solid rgba(255,176,32,.3);border-radius:12px;
+  padding:11px 13px;font-size:13px;line-height:1.45;color:var(--tx)}
+
+/* ---- метка Web у логотипа ---- */
+.logo .wtag{-webkit-text-fill-color:#fff;color:#fff;margin-left:.24em}
 
 .logo{
   font-family:Unbounded,sans-serif;font-weight:800;
@@ -427,6 +507,14 @@ body.light .bub.them{color:var(--tx)}
   </linearGradient>
 </defs></svg>
 
+<section id="wrongDev" class="hide">
+  <div class="logo" id="wdLogo">Kwora</div>
+  <div class="wd-box">
+    <div class="wd-t">Ошибка</div>
+    <a class="wd-a" id="wdLink" href="#"></a>
+  </div>
+</section>
+
 <div class="frame">
 
   <!-- ======== ЗАСТАВКА ======== -->
@@ -446,6 +534,26 @@ body.light .bub.them{color:var(--tx)}
       <div id="note" class="note"></div>
     </div>
     <div id="studio" style="position:absolute;left:0;right:0;bottom:calc(14px + env(safe-area-inset-bottom));text-align:center;font-size:11px;color:var(--dim);opacity:.75"></div>
+  </section>
+
+  <!-- ======== ВХОД ПО QR (веб) ======== -->
+  <section id="qrAuth" class="hide">
+    <div class="logo">Kwora</div>
+    <div class="pane qr-pane">
+      <h3>Вход по QR-коду</h3>
+      <div class="sub">Открой Kwora на телефоне → Профиль → Подключить компьютер</div>
+      <div class="qr-wrap"><canvas id="qrC" width="230" height="230"></canvas></div>
+      <div class="qr-or">или введи код вручную</div>
+      <div class="qr-code" id="qrCode">········</div>
+      <div id="qrNote" class="note"></div>
+      <button id="qrNew" class="plain">Обновить код</button>
+    </div>
+  </section>
+
+  <!-- ======== ЗАГРУЗКА ВЕБ-ВЕРСИИ ======== -->
+  <section id="webLoad" class="hide">
+    <div class="logo">Kwora</div>
+    <div style="width:26px;height:26px;border:3px solid #2E3340;border-top-color:#7B61FF;border-radius:50%;animation:spin .8s linear infinite"></div>
   </section>
 
   <!-- ======== КОД / АККАУНТЫ ======== -->
@@ -601,8 +709,8 @@ body.light .bub.them{color:var(--tx)}
 
 <input type="file" id="pickAva" accept="image/*" class="hide">
 <input type="file" id="pickBnr" accept="image/*" class="hide">
-<input type="file" id="pickVid" accept="video/*" class="hide">
-<input type="file" id="pickImg" accept="image/*" class="hide">
+<input type="file" id="pickVid" accept="video/*" multiple class="hide">
+<input type="file" id="pickImg" accept="image/*" multiple class="hide">
 <input type="file" id="pickGrp" accept="image/*" class="hide">
 <input type="file" id="pickBadge" accept="image/*" class="hide">
 
@@ -818,7 +926,56 @@ function langPickScreen(afterPick){
 }
 
 
-const KW_BUILD = "v59";
+const KW_BUILD = "v60";
+
+/* ==================== РЕЖИМ: МОБИЛЬНЫЙ ИЛИ ВЕБ ====================
+   web.kwora.ru — версия для компьютера, kwora.ru — для телефона.
+   Файл один и тот же, различает себя по адресу.                     */
+const WEB = /^web\./i.test(location.hostname);
+const MOB_URL = "https://kwora.ru/";
+const WEB_URL = "https://web.kwora.ru/";
+const APP_MODE = (() => {
+  try { return matchMedia("(display-mode: standalone)").matches || navigator.standalone === true; }
+  catch (_) { return false; }
+})();
+
+if (WEB) document.documentElement.classList.add("web");
+
+/* Экран не подходит — просто говорим, куда идти, без объяснений. */
+function devGate(){
+  const w = Math.min(innerWidth, outerWidth || innerWidth);
+  let bad = false;
+  if (WEB) bad = w < 900;                    // веб на телефоне
+  else bad = !APP_MODE && w >= 1100;         // мобильная в окне ноутбука
+  const g = document.getElementById("wrongDev");
+  if (!g) return;
+  if (bad) {
+    const url = WEB ? MOB_URL : WEB_URL;
+    const a = document.getElementById("wdLink");
+    a.href = url;
+    a.textContent = url.replace(/^https:\/\//, "").replace(/\/$/, "");
+    document.getElementById("wdLogo").innerHTML = WEB ? 'Kwora<span class="wtag">Web</span>' : "Kwora";
+    g.classList.remove("hide");
+  } else g.classList.add("hide");
+}
+addEventListener("resize", devGate);
+
+/* Метка Web рядом с логотипом на всех экранах входа. */
+function brandWeb(){
+  if (!WEB) return;
+  document.querySelectorAll(".logo").forEach(l => {
+    if (l.id === "wdLogo" || l.querySelector(".wtag")) return;
+    if ((l.textContent || "").trim() === "Kwora") l.innerHTML = 'Kwora<span class="wtag">Web</span>';
+  });
+}
+devGate(); brandWeb();
+
+/* Ссылка из QR открылась прямо на телефоне — подхватываем код. */
+let pendWebCode = null;
+try {
+  const m = location.search.match(/[?&]w=([A-Za-z0-9]{8})/);
+  if (m && !WEB) { pendWebCode = m[1].toUpperCase(); history.replaceState(null, "", location.pathname); }
+} catch (_) {}
 try { if (localStorage.getItem("kwTheme") === "light") document.body.classList.add("light"); } catch (_) {}
 const ICE = {
   iceServers: [
@@ -1408,6 +1565,7 @@ function fgShow(title, sub){
 }
 function fgClose(){
   $("forgot").classList.add("hide");
+  if (WEB) { qrScreen(); return; }
   $("auth").classList.remove("hide");
   busy1($("go"), false);
   $("note").textContent = "";
@@ -1673,16 +1831,185 @@ function stopAll(){
   try { $("iId").value = ""; $("note").textContent = ""; } catch (_) {}
 }
 
+/* ==================== ВХОД ПО QR: СТОРОНА КОМПЬЮТЕРА ==================== */
+const callWebStart   = httpsCallable(fns, "webStart");
+const callWebPoll    = httpsCallable(fns, "webPoll");
+const callWebLookup  = httpsCallable(fns, "webLookup");
+const callWebApprove = httpsCallable(fns, "webApprove");
+
+let qrTimer = null, qrLive = null;
+
+function deviceName(){
+  const u = navigator.userAgent;
+  const br = /Edg\//.test(u) ? "Edge" : /OPR\//.test(u) ? "Opera" : /Firefox\//.test(u) ? "Firefox"
+           : /Chrome\//.test(u) ? "Chrome" : /Safari\//.test(u) ? "Safari" : "Браузер";
+  const os = /Windows/.test(u) ? "Windows" : /Mac OS X/.test(u) ? "macOS"
+           : /Linux/.test(u) ? "Linux" : /Android/.test(u) ? "Android" : "";
+  return os ? br + " · " + os : br;
+}
+
+function qrStop(){ if (qrTimer) { clearTimeout(qrTimer); qrTimer = null; } qrLive = null; }
+
+async function qrScreen(){
+  qrStop();
+  $("splash").classList.add("hide");
+  $("auth").classList.add("hide");
+  $("forgot").classList.add("hide");
+  $("app").classList.add("hide");
+  $("webLoad").classList.add("hide");
+  $("qrAuth").classList.remove("hide");
+  brandWeb();
+  const note = $("qrNote");
+  note.textContent = "";
+  $("qrCode").textContent = "········";
+  try {
+    const r = (await callWebStart({ device: deviceName() })).data;
+    qrLive = r.code;
+    $("qrCode").textContent = r.code;
+    const url = MOB_URL + "?w=" + r.code;
+    if (window.QRCode && QRCode.toCanvas) {
+      QRCode.toCanvas($("qrC"), url, { width: 230, margin: 1 }, e => { if (e) note.textContent = "QR не нарисовался — введи код вручную"; });
+    } else {
+      note.textContent = "QR не загрузился — введи код вручную";
+    }
+    qrWait(r.code);
+  } catch (e) { note.textContent = fbErr(e); }
+}
+
+function qrWait(code){
+  qrTimer = setTimeout(async () => {
+    if (qrLive !== code) return;
+    try {
+      const r = (await callWebPoll({ code })).data;
+      if (r.status === "ok") {
+        qrStop();
+        $("qrAuth").classList.add("hide");
+        $("webLoad").classList.remove("hide");
+        brandWeb();
+        await signInWithCustomToken(auth, r.token);
+        return;
+      }
+      if (r.status === "no")   { $("qrNote").textContent = "Вход отклонён с телефона"; qrStop(); return; }
+      if (r.status === "gone") { qrScreen(); return; }
+    } catch (_) {}
+    qrWait(code);
+  }, 2000);
+}
+
+$("qrNew").onclick = qrScreen;
+
+/* ==================== ВХОД ПО QR: СТОРОНА ТЕЛЕФОНА ==================== */
+let scanStop = null;
+
+async function scanOpen(){
+  const ov = el("div"); ov.id = "scanOv";
+  const v = document.createElement("video");
+  v.playsInline = true; v.muted = true; v.autoplay = true;
+  const cap = el("div", "sc-cap", "Наведи на QR-код на экране компьютера");
+  const frame = el("div", "sc-frame");
+  const manual = el("button", "plain", "Ввести код вручную");
+  const close = el("button", "plain", "Закрыть");
+  manual.onclick = () => { scanClose(); codeDialog(); };
+  close.onclick = scanClose;
+  ov.append(v, frame, cap, manual, close);
+  document.body.append(ov);
+
+  let stream = null, det = null, alive = true;
+  scanStop = () => {
+    alive = false;
+    try { stream && stream.getTracks().forEach(t => t.stop()); } catch (_) {}
+    try { ov.remove(); } catch (_) {}
+    scanStop = null;
+  };
+
+  if (!("BarcodeDetector" in window)) {
+    scanClose(); toast("Сканер не поддерживается — введи код вручную"); codeDialog(); return;
+  }
+  try {
+    det = new BarcodeDetector({ formats: ["qr_code"] });
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+    v.srcObject = stream; await v.play();
+  } catch (e) {
+    scanClose(); toast("Камера недоступна — введи код вручную"); codeDialog(); return;
+  }
+
+  (async function loop(){
+    if (!alive) return;
+    try {
+      const found = await det.detect(v);
+      if (found && found.length) {
+        const raw = String(found[0].rawValue || "");
+        const m = raw.match(/[?&]w=([A-Z0-9]{8})/i) || raw.match(/^([A-Z0-9]{8})$/i);
+        if (m) { scanClose(); webConfirm(m[1].toUpperCase()); return; }
+      }
+    } catch (_) {}
+    setTimeout(loop, 350);
+  })();
+}
+function scanClose(){ if (scanStop) scanStop(); }
+
+function codeDialog(){
+  const d = $("dlg"); d.replaceChildren();
+  d.append(el("h3", null, "Код с компьютера"));
+  d.append(el("p", null, "Восемь символов под QR-кодом."));
+  const w = el("div", "inp");
+  const i = document.createElement("input");
+  i.placeholder = "ABCD2345"; i.maxLength = 8; i.autocapitalize = "characters"; i.autocorrect = "off";
+  i.style.textTransform = "uppercase"; i.style.letterSpacing = ".14em";
+  w.append(i); d.append(w);
+  const err = el("div", "note"); d.append(err);
+  const row = el("div", "row");
+  const no = el("button", "ghost", "Отмена"); no.onclick = closeDlg;
+  const ok = el("button", "cta", "Далее");
+  ok.onclick = () => {
+    const c = i.value.trim().toUpperCase();
+    if (c.length !== 8) { err.textContent = "Нужно восемь символов"; return; }
+    closeDlg(); webConfirm(c);
+  };
+  row.append(no, ok); d.append(row);
+  $("modal").classList.add("on");
+  setTimeout(() => i.focus(), 60);
+}
+
+async function webConfirm(code){
+  let info;
+  try { info = (await callWebLookup({ code })).data; }
+  catch (e) { toast(fbErr(e)); return; }
+
+  const d = $("dlg"); d.replaceChildren();
+  d.append(el("h3", null, "Вход с устройства"));
+  d.append(el("div", "dev-n", info.device));
+  const warn = el("div", "warn-b");
+  warn.append(el("b", null, "Осторожно, это могут быть мошенники."));
+  warn.append(document.createTextNode(" Не нажимай «Принять», если это не твой компьютер."));
+  d.append(warn);
+  const err = el("div", "note"); d.append(err);
+  const row = el("div", "row");
+  const no = el("button", "ghost", "Отклонить");
+  const ok = el("button", "cta", "Принять");
+  no.onclick = async () => { closeDlg(); try { await callWebApprove({ code, accept: false }); } catch (_) {} toast("Вход отклонён"); };
+  ok.onclick = async () => {
+    busy1(ok, true);
+    try { await callWebApprove({ code, accept: true }); closeDlg(); toast("Компьютер подключён"); }
+    catch (e) { err.textContent = fbErr(e); busy1(ok, false); }
+  };
+  row.append(no, ok); d.append(row);
+  $("modal").classList.add("on");
+}
+
 async function start(p){
   if (window.__mark) __mark("старт-профиля");
   setTimeout(pushSetup, 1500);
   setTimeout(passGate, 2500);
   setTimeout(tourMain, 1200);
+  if (pendWebCode) { const c = pendWebCode; pendWebCode = null; setTimeout(() => webConfirm(c), 900); }
   setTimeout(function beat(){
     if (me && document.visibilityState === "visible") updateDoc(U(me.uid), { lastSeen: Date.now() }).catch(() => {});
     setTimeout(beat, 60000);
   }, 2000);
   me = p; cache.set(me.uid, me);
+  qrStop();
+  $("qrAuth").classList.add("hide"); $("webLoad").classList.add("hide");
   $("auth").classList.add("hide"); $("splash").classList.add("hide"); $("app").classList.remove("hide"); $("go").disabled = false;
 
   try { isAdmin = (await getDoc(doc(db, "admins", me.uid))).exists(); } catch (_) { isAdmin = false; }
@@ -1826,7 +2153,7 @@ function drawChats(){
   }
   for (const c of rest) {
     const f = face(c);
-    const row = el("button", "item");
+    const row = el("button", "item" + (active && active.id === c.id ? " on" : ""));
     row.append(ava(f, 50));
     const mid = el("div", "grow");
     const t1 = el("div", "t1 ell");
@@ -2151,6 +2478,7 @@ async function openChat(c){
   if (c.type !== "group") await profile(peerOf(c));
   else await Promise.all((c.members || []).map(profile));
   paint();
+  drawChats();
   listen(c.id);
   if (c.type === "group") watchRoles(c.id);
 }
@@ -2636,7 +2964,7 @@ async function contactPick(){
   $("modal").classList.add("on");
 }
 $("pickImg").onchange = async e => {
-  const fs = e.target.files; e.target.value = "";
+  const fs = Array.from(e.target.files || []); e.target.value = "";
   if (!fs || !fs.length || !active) return;
   await trayAdd(fs, "img");
 };
@@ -2727,7 +3055,7 @@ const VICON = {
 
 /* ============ ВИДЕО (Firebase Storage) ============ */
 $("pickVid").onchange = async e => {
-  const fs = e.target.files; e.target.value = "";
+  const fs = Array.from(e.target.files || []); e.target.value = "";
   if (!fs || !fs.length || !active) return;
   await trayAdd(fs, "vid");
 };
@@ -4033,7 +4361,16 @@ function drawMe(){
   const cpw = el("button", "pill", T("change")); cpw.onclick = changePass; lpw.append(cpw); c2.append(lpw);
   const l5 = el("div", "line"); const vv = el("div", "grow"); vv.append(el("div", "k", T("fTick"))); vv.append(el("div", "v", me.verified ? T("tickYes") : (me.verifyAsked ? T("tickAsk") : T("tickNo")))); l5.append(vv);
   if (!me.verified && !me.verifyAsked) { const a = el("button", "pill", T("apply")); a.onclick = async () => { try { await updateDoc(U(me.uid), { verifyAsked: true, verifyAt: serverTimestamp() }); toast(T("appSent")); } catch (e) { toast(say(e)); } }; l5.append(a); }
-  c2.append(l5); box.append(c2);
+  c2.append(l5);
+  if (!WEB) {
+    const lw = el("div", "line"); const wg = el("div", "grow");
+    wg.append(el("div", "k", "Компьютер"));
+    wg.append(el("div", "v", "Вход в веб-версию"));
+    lw.append(wg);
+    const wb = el("button", "pill", "Подключить"); wb.onclick = scanOpen; lw.append(wb);
+    c2.append(lw);
+  }
+  box.append(c2);
 
   box.append(el("div", "cap", T("capLang")));
   const cl = el("div", "card");
