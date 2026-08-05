@@ -6,7 +6,7 @@
 <title>Kwora</title>
 <meta name="theme-color" content="#0C0D11" />
 <link rel="manifest" href="/manifest.json" />
-<link rel="apple-touch-icon" href="icon-192.png" />
+<link rel="apple-touch-icon" href="/icon-192.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -763,10 +763,10 @@ function __imp(name, file) {
 }
 let __fb = {};
 try {
-  __fb.app = await __imp("app", "./firebase-app.js");
-  __fb.auth = await __imp("auth", "./firebase-auth.js");
-  __fb.functions = await __imp("functions", "./firebase-functions.js");
-  __fb.firestore = await __imp("firestore", "./firebase-firestore.js");
+  __fb.app = await __imp("app", "/firebase-app.js");
+  __fb.auth = await __imp("auth", "/firebase-auth.js");
+  __fb.functions = await __imp("functions", "/firebase-functions.js");
+  __fb.firestore = await __imp("firestore", "/firebase-firestore.js");
 } catch (e) {
   window.__lastErr = "ИМПОРТ: " + (e && e.message ? e.message : e);
   document.body.insertAdjacentHTML("beforeend", '<div style="position:fixed;left:8px;right:8px;top:8px;z-index:99999;background:#B3261E;color:#fff;padding:10px;border-radius:12px;font:13px monospace;word-break:break-word">' + window.__lastErr + "</div>");
@@ -778,9 +778,9 @@ const { getFunctions,httpsCallable } = __fb.functions;
 const { getFirestore,initializeFirestore,doc,setDoc,getDoc,getDocs,deleteDoc,updateDoc,addDoc,collection,query,where,orderBy,limit,onSnapshot,serverTimestamp,writeBatch,arrayUnion,arrayRemove,deleteField } = __fb.firestore;
 
 let __msg = null;
-try { __msg = await import("./firebase-messaging.js"); } catch (_) {}
+try { __msg = await import("/firebase-messaging.js"); } catch (_) {}
 let __sto = null;
-try { __sto = await import("./firebase-storage.js"); } catch (_) {}
+try { __sto = await import("/firebase-storage.js"); } catch (_) {}
 
 const cfg = {
   apiKey: "AIzaSyCkp9-fJ30nYnDe0H0QsUVXlUeicw6hcEM",
@@ -926,7 +926,7 @@ function langPickScreen(afterPick){
 }
 
 
-const KW_BUILD = "v61";
+const KW_BUILD = "v62";
 
 /* ==================== РЕЖИМ: МОБИЛЬНЫЙ ИЛИ ВЕБ ====================
    web.kwora.ru — версия для компьютера, kwora.ru — для телефона.
