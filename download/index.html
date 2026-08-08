@@ -51,10 +51,10 @@ h1 em{font-style:normal;background:var(--grad);-webkit-background-clip:text;back
 .main{
   display:block;text-decoration:none;color:var(--tx);position:relative;
   background:var(--s1);border:1px solid var(--line);border-radius:22px;
-  padding:19px 20px;overflow:hidden;
+  padding:19px 20px;
   transition:transform .18s cubic-bezier(.2,.8,.3,1),border-color .18s;
 }
-.main::before{content:"";position:absolute;inset:0;background:var(--grad);opacity:.13}
+.main::before{content:"";position:absolute;inset:0;border-radius:inherit;background:var(--grad);opacity:.13}
 .main::after{ /* хвостик пузыря */
   content:"";position:absolute;left:26px;bottom:-9px;width:18px;height:18px;
   background:#1A1B2B;border-right:1px solid var(--line);border-bottom:1px solid var(--line);
@@ -68,13 +68,13 @@ h1 em{font-style:normal;background:var(--grad);-webkit-background-clip:text;back
 .ic svg{width:21px;height:21px;fill:var(--tx)}
 .pt{font-weight:600;font-size:17px;letter-spacing:-.01em}
 .ps{color:var(--dim);font-size:13px;margin-top:1px}
-.go{margin-left:auto;width:30px;height:30px;flex:none;display:grid;place-items:center;
+.go{margin-left:auto;width:34px;height:34px;flex:none;display:grid;place-items:center;
   border-radius:50%;background:var(--grad)}
-.go svg{width:15px;height:15px;fill:#0C0D11}
+.go svg{width:17px;height:17px;fill:none;stroke:#0C0D11;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round}
 .meta{
   margin-top:14px;padding-top:13px;border-top:1px solid rgba(255,255,255,.08);
   font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11.5px;color:var(--dim);
-  display:flex;gap:9px;flex-wrap:wrap;
+  display:flex;gap:9px;
 }
 .meta span::after{content:"·";margin-left:9px;opacity:.5}
 .meta span:last-child::after{content:""}
@@ -141,9 +141,9 @@ h1 em{font-style:normal;background:var(--grad);-webkit-background-clip:text;back
         <div class="pt">Android и Huawei</div>
         <div class="ps">Установочный файл APK</div>
       </div>
-      <div class="go"><svg viewBox="0 0 24 24"><path d="M12 16l-6-6h12l-6 6z"/></svg></div>
+      <div class="go"><svg viewBox="0 0 24 24"><path d="M12 4v10"/><path d="M8 11l4 4 4-4"/><path d="M5 15v3a2 2 0 002 2h10a2 2 0 002-2v-3"/></svg></div>
     </div>
-    <div class="meta"><span>APK</span><span>915 КБ</span><span>Android 6.0+</span><span>HarmonyOS</span></div>
+    <div class="meta"><span>APK</span><span>915 КБ</span><span>Android 6+</span></div>
   </a>
 
   <div class="soon up">
