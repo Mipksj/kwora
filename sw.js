@@ -1,5 +1,6 @@
 /* Kwora SW v3: запас firebase-файлов + фоновые пуш-уведомления */
-const CACHE = "kwora-v5";
+const CACHE = "kwora-v6";
+const SHARE = "kwora-share";
 const FB = ["firebase-app.js","firebase-auth.js","firebase-firestore.js","firebase-functions.js",
             "firebase-messaging.js","firebase-storage.js","firebase-app-compat.js","firebase-messaging-compat.js"];
 
@@ -60,10 +61,39 @@ self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FB).catch(() => {})).then(() => self.skipWaiting()));
 });
 self.addEventListener("activate", (e) => {
-  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE && k !== SHARE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
+/* ---------- приём из системного «Поделиться» ---------- */
+async function takeShare(req){
+  try {
+    const fd = await req.formData();
+    const files = fd.getAll("files").filter(f => f && f.size);
+    const text = [fd.get("title"), fd.get("text"), fd.get("url")]
+      .filter(Boolean).map(String).join(" ").trim();
+    const c = await caches.open(SHARE);
+    for (const k of await c.keys()) await c.delete(k);
+    const meta = { text, files: [] };
+    let i = 0;
+    for (const f of files.slice(0, 4)) {
+      const key = "/__share/" + i++;
+      await c.put(new Request(key), new Response(f, {
+        headers: { "content-type": f.type || "application/octet-stream" }
+      }));
+      meta.files.push({ key, type: f.type || "", name: f.name || "" });
+    }
+    await c.put(new Request("/__share/meta"), new Response(JSON.stringify(meta), {
+      headers: { "content-type": "application/json" }
+    }));
+  } catch (_) {}
+  return Response.redirect("/?share=1", 303);
+}
+
 self.addEventListener("fetch", (e) => {
   const req = e.request;
+  if (req.method === "POST" && new URL(req.url).pathname === "/share") {
+    e.respondWith(takeShare(req));
+    return;
+  }
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;

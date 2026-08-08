@@ -131,6 +131,17 @@ html.web #qrAuth .pane,html.web #auth .pane{max-width:420px;margin:0 auto}
 .qr-or{margin-top:12px;font-size:12px;color:var(--dim)}
 .qr-code{margin-top:6px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:26px;font-weight:700;letter-spacing:.16em;color:var(--tx)}
 
+/* ---- выбор чата для присланного ---- */
+#shOv{position:fixed;inset:0;z-index:760;background:var(--bg);display:flex;flex-direction:column}
+.sh-head{display:flex;align-items:center;gap:10px;padding:14px 12px;border-bottom:1px solid var(--line);flex:none}
+.sh-t{font-size:17px;font-weight:600;color:var(--tx)}
+.sh-prev{display:flex;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line);flex:none;align-items:center;overflow-x:auto}
+.sh-th{width:56px;height:56px;border-radius:11px;overflow:hidden;background:var(--s2);flex:none;position:relative}
+.sh-th img,.sh-th video{width:100%;height:100%;object-fit:cover;display:block}
+.sh-th.vid::after{content:"";position:absolute;inset:0;background:rgba(0,0,0,.32)}
+.sh-tx{font-size:13px;color:var(--dim);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sh-list{flex:1;min-height:0;overflow-y:auto;padding:6px 0}
+
 /* ---- сканер QR на телефоне ---- */
 #scanOv{position:fixed;inset:0;z-index:800;background:#000;display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:14px;padding:24px}
@@ -926,7 +937,7 @@ function langPickScreen(afterPick){
 }
 
 
-const KW_BUILD = "v62";
+const KW_BUILD = "v63";
 
 /* ==================== РЕЖИМ: МОБИЛЬНЫЙ ИЛИ ВЕБ ====================
    web.kwora.ru — версия для компьютера, kwora.ru — для телефона.
@@ -972,6 +983,10 @@ devGate(); brandWeb();
 
 /* Ссылка из QR открылась прямо на телефоне — подхватываем код. */
 let pendWebCode = null;
+let wantShare = false;
+try {
+  if (/[?&]share=1/.test(location.search)) { wantShare = true; history.replaceState(null, "", location.pathname); }
+} catch (_) {}
 try {
   const m = location.search.match(/[?&]w=([A-Za-z0-9]{8})/);
   if (m && !WEB) { pendWebCode = m[1].toUpperCase(); history.replaceState(null, "", location.pathname); }
@@ -1898,6 +1913,81 @@ function qrWait(code){
 
 $("qrNew").onclick = qrScreen;
 
+/* ==================== ПРИШЛО ИЗ «ПОДЕЛИТЬСЯ» ====================
+   Service worker сложил файлы в отдельный кеш и открыл нас с ?share=1.
+   Забираем, показываем выбор чата, вкладываем в ленту и даём дописать подпись. */
+let shareBag = null;
+
+async function shareTake(){
+  try {
+    const c = await caches.open("kwora-share");
+    const m = await c.match("/__share/meta");
+    if (!m) return null;
+    const meta = await m.json();
+    const out = { text: meta.text || "", files: [] };
+    for (const f of (meta.files || [])) {
+      const r = await c.match(f.key);
+      if (!r) continue;
+      const b = await r.blob();
+      out.files.push(new File([b], f.name || "file", { type: f.type || b.type || "" }));
+    }
+    for (const k of await c.keys()) await c.delete(k);
+    return (out.files.length || out.text) ? out : null;
+  } catch (_) { return null; }
+}
+
+function sharePick(bag){
+  const ov = el("div"); ov.id = "shOv";
+  const head = el("div", "sh-head");
+  const back = el("button", "ic");
+  back.innerHTML = ICONS.back || "×";
+  back.onclick = () => { shareBag = null; ov.remove(); };
+  head.append(back, el("div", "sh-t", "Кому отправить"));
+  ov.append(head);
+
+  const prev = el("div", "sh-prev");
+  for (const f of bag.files.slice(0, 4)) {
+    const c = el("div", "sh-th");
+    if (/^video/.test(f.type)) c.classList.add("vid");
+    const u = URL.createObjectURL(f);
+    const i = document.createElement(/^video/.test(f.type) ? "video" : "img");
+    i.src = u; if (i.tagName === "VIDEO") { i.muted = true; i.playsInline = true; }
+    c.append(i); prev.append(c);
+  }
+  if (bag.text) prev.append(el("div", "sh-tx", bag.text));
+  if (prev.children.length) ov.append(prev);
+
+  const list = el("div", "sh-list");
+  const seen = new Set();
+  for (const c of chats) {
+    if (c.type !== "group" && blocks.has(peerOf(c))) continue;
+    const f = face(c); if (!f) continue;
+    seen.add(c.id);
+    const row = el("button", "item");
+    row.append(ava(f, 46));
+    const mid = el("div", "grow");
+    mid.append(el("div", "t1 ell", f.name || f.nick));
+    mid.append(el("div", "t2 ell", c.type === "group" ? "Группа" : "@" + (f.nick || "")));
+    row.append(mid);
+    row.onclick = async () => { ov.remove(); await shareInto(c, null, bag); };
+    list.append(row);
+  }
+  if (!list.children.length) list.append(el("div", "blank", "Пока не с кем поделиться — заведи переписку."));
+  ov.append(list);
+  document.body.append(ov);
+}
+
+async function shareInto(chat, peer, bag){
+  if (chat) await openChat(chat); else if (peer) await openDM(peer);
+  trayClear();
+  const imgs = bag.files.filter(f => /^image/.test(f.type));
+  const vids = bag.files.filter(f => /^video/.test(f.type));
+  if (imgs.length) await trayAdd(imgs, "img");
+  if (vids.length) await trayAdd(vids, "vid");
+  if (bag.text && !ta.value.trim()) { ta.value = bag.text; ta.dispatchEvent(new Event("input")); }
+  setTimeout(() => { try { ta.focus(); } catch (_) {} }, 250);
+}
+
 /* ==================== ВХОД ПО QR: СТОРОНА ТЕЛЕФОНА ==================== */
 let scanStop = null;
 
@@ -2003,6 +2093,10 @@ async function start(p){
   setTimeout(passGate, 2500);
   setTimeout(tourMain, 1200);
   if (pendWebCode) { const c = pendWebCode; pendWebCode = null; setTimeout(() => webConfirm(c), 900); }
+  if (wantShare) {
+    wantShare = false;
+    setTimeout(async () => { const bag = await shareTake(); if (bag) sharePick(bag); }, 500);
+  }
   setTimeout(function beat(){
     if (me && document.visibilityState === "visible") updateDoc(U(me.uid), { lastSeen: Date.now() }).catch(() => {});
     setTimeout(beat, 60000);
