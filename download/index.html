@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Скачать Kwora</title>
+<meta name="theme-color" content="#0C0D11">
+<meta name="description" content="Kwora — мессенджер с групповыми видеозвонками, ботами и голосовыми сообщениями.">
+<link rel="icon" href="/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Onest:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0C0D11; --s1:#14161C; --s2:#1B1E27; --line:#282C38;
+  --tx:#EDEFF4; --dim:#8A90A0;
+  --b1:#7B61FF; --b2:#3EA8FF; --grad:linear-gradient(135deg,#7B61FF,#3EA8FF);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--bg);color:var(--tx);
+  font-family:Onest,system-ui,sans-serif;font-size:16px;line-height:1.5;
+  min-height:100dvh;display:flex;flex-direction:column;
+  padding:max(22px,env(safe-area-inset-top)) 22px max(28px,env(safe-area-inset-bottom));
+  overflow-x:hidden;
+}
+/* мягкое свечение за содержимым */
+body::before{
+  content:"";position:fixed;left:50%;top:-14%;width:min(760px,150vw);aspect-ratio:1;
+  transform:translateX(-50%);pointer-events:none;z-index:0;
+  background:radial-gradient(circle,rgba(123,97,255,.20),rgba(62,168,255,.08) 42%,transparent 68%);
+}
+.wrap{position:relative;z-index:1;width:100%;max-width:460px;margin:0 auto;flex:1;display:flex;flex-direction:column}
+
+.mark{
+  font-family:Unbounded,sans-serif;font-weight:800;font-size:21px;letter-spacing:-.03em;
+  background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;
+  align-self:flex-start;text-decoration:none;
+}
+
+.lede{margin-top:auto;padding:44px 0 32px}
+h1{
+  font-family:Unbounded,sans-serif;font-weight:800;letter-spacing:-.035em;
+  font-size:clamp(30px,8.5vw,40px);line-height:1.08;
+}
+h1 em{font-style:normal;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{margin-top:14px;color:var(--dim);font-size:15.5px;max-width:34ch}
+
+/* ---- главная кнопка: пузырь сообщения ---- */
+.main{
+  display:block;text-decoration:none;color:var(--tx);position:relative;
+  background:var(--s1);border:1px solid var(--line);border-radius:22px;
+  padding:19px 20px;overflow:hidden;
+  transition:transform .18s cubic-bezier(.2,.8,.3,1),border-color .18s;
+}
+.main::before{content:"";position:absolute;inset:0;background:var(--grad);opacity:.13}
+.main::after{ /* хвостик пузыря */
+  content:"";position:absolute;left:26px;bottom:-9px;width:18px;height:18px;
+  background:#1A1B2B;border-right:1px solid var(--line);border-bottom:1px solid var(--line);
+  transform:rotate(45deg);border-bottom-right-radius:4px;
+}
+.main:hover,.main:focus-visible{transform:translateY(-2px);border-color:#3A3F52}
+.main:active{transform:translateY(0)}
+.main > *{position:relative;z-index:1}
+.plat{display:flex;align-items:center;gap:12px}
+.ic{width:38px;height:38px;flex:none;display:grid;place-items:center;border-radius:11px;background:rgba(255,255,255,.07)}
+.ic svg{width:21px;height:21px;fill:var(--tx)}
+.pt{font-weight:600;font-size:17px;letter-spacing:-.01em}
+.ps{color:var(--dim);font-size:13px;margin-top:1px}
+.go{margin-left:auto;width:30px;height:30px;flex:none;display:grid;place-items:center;
+  border-radius:50%;background:var(--grad)}
+.go svg{width:15px;height:15px;fill:#0C0D11}
+.meta{
+  margin-top:14px;padding-top:13px;border-top:1px solid rgba(255,255,255,.08);
+  font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11.5px;color:var(--dim);
+  display:flex;gap:9px;flex-wrap:wrap;
+}
+.meta span::after{content:"·";margin-left:9px;opacity:.5}
+.meta span:last-child::after{content:""}
+
+/* ---- ожидающие платформы ---- */
+.soon{margin-top:26px;display:flex;flex-direction:column;gap:1px}
+.slab{
+  font-family:'JetBrains Mono',ui-monospace,monospace;font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--dim);margin-bottom:11px;
+}
+.row{
+  display:flex;align-items:center;gap:12px;padding:14px 4px;
+  border-top:1px solid var(--line);
+}
+.row:last-child{border-bottom:1px solid var(--line)}
+.row .ic{width:32px;height:32px;background:transparent;border:1px solid var(--line)}
+.row .ic svg{width:17px;height:17px;fill:var(--dim)}
+.rt{font-weight:500;font-size:15px;color:var(--dim)}
+.rn{font-size:12.5px;color:#5C6273;margin-top:1px}
+.rn a{color:var(--b2);text-decoration:none}
+.rn a:hover{text-decoration:underline}
+.tag{
+  margin-left:auto;font-family:'JetBrains Mono',ui-monospace,monospace;
+  font-size:10px;letter-spacing:.06em;color:#5C6273;
+  border:1px solid var(--line);border-radius:99px;padding:4px 9px;white-space:nowrap;
+}
+
+.note{margin-top:22px;color:#5C6273;font-size:12.5px;line-height:1.55}
+.foot{margin-top:30px;padding-top:18px;border-top:1px solid var(--line);
+  display:flex;justify-content:space-between;align-items:center;gap:14px;font-size:13px}
+.foot a{color:var(--dim);text-decoration:none}
+.foot a:hover{color:var(--tx)}
+
+:focus-visible{outline:2px solid var(--b2);outline-offset:3px;border-radius:8px}
+
+/* появление */
+.up{animation:up .6s cubic-bezier(.2,.8,.3,1) backwards}
+.up:nth-child(1){animation-delay:.04s}
+.up:nth-child(2){animation-delay:.12s}
+.up:nth-child(3){animation-delay:.2s}
+.up:nth-child(4){animation-delay:.28s}
+@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){
+  .up{animation:none}
+  .main{transition:none}
+  .main:hover{transform:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <a class="mark" href="/">Kwora</a>
+
+  <div class="lede up">
+    <h1>Мессенджер,<br>который <em>ваш</em></h1>
+    <p class="sub">Групповые видеозвонки, боты, голосовые и видеосообщения. Без рекламы и лишних разрешений.</p>
+  </div>
+
+  <a class="main up" href="/download/Kwora.apk" download>
+    <div class="plat">
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M17.6 9.48l1.84-3.18a.4.4 0 00-.7-.4l-1.86 3.22a11.4 11.4 0 00-9.76 0L5.26 5.9a.4.4 0 10-.7.4L6.4 9.48A10.8 10.8 0 001 18h22a10.8 10.8 0 00-5.4-8.52zM7 15.25a1.25 1.25 0 110-2.5 1.25 1.25 0 010 2.5zm10 0a1.25 1.25 0 110-2.5 1.25 1.25 0 010 2.5z"/></svg></div>
+      <div>
+        <div class="pt">Android и Huawei</div>
+        <div class="ps">Установочный файл APK</div>
+      </div>
+      <div class="go"><svg viewBox="0 0 24 24"><path d="M12 16l-6-6h12l-6 6z"/></svg></div>
+    </div>
+    <div class="meta"><span>APK</span><span>915 КБ</span><span>Android 6.0+</span><span>HarmonyOS</span></div>
+  </a>
+
+  <div class="soon up">
+    <div class="slab">Скоро</div>
+
+    <div class="row">
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M3 5.6l7.6-1v7H3v-6zM11.4 4.5L21 3.2v8.4h-9.6v-7.1zM3 13.4h7.6v7L3 19.4v-6zM11.4 13.4H21v8.4l-9.6-1.3v-7.1z"/></svg></div>
+      <div>
+        <div class="rt">Windows</div>
+        <div class="rn">Пока есть <a href="/web/">версия для компьютера</a></div>
+      </div>
+      <div class="tag">в разработке</div>
+    </div>
+
+    <div class="row">
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M16.4 12.7c0-2.2 1.8-3.3 1.9-3.4-1-1.5-2.6-1.7-3.2-1.7-1.4-.1-2.7.8-3.3.8-.7 0-1.7-.8-2.8-.8-1.5 0-2.8.8-3.6 2.1-1.5 2.6-.4 6.5 1.1 8.6.7 1 1.6 2.2 2.7 2.2 1.1 0 1.5-.7 2.8-.7 1.3 0 1.6.7 2.8.7 1.2 0 1.9-1 2.6-2.1.8-1.2 1.2-2.4 1.2-2.4-.1 0-2.2-.9-2.2-3.3zM14.3 5.9c.6-.7 1-1.7.9-2.7-.9 0-2 .6-2.6 1.3-.6.6-1.1 1.7-.9 2.6 1 .1 2-.5 2.6-1.2z"/></svg></div>
+      <div>
+        <div class="rt">iOS и macOS</div>
+        <div class="rn">iPhone, iPad, MacBook</div>
+      </div>
+      <div class="tag">в разработке</div>
+    </div>
+  </div>
+
+  <p class="note">При установке Android спросит разрешение на файлы из неизвестных источников — это обычное дело для приложений не из магазина. Разрешите и продолжайте.</p>
+
+  <div class="foot">
+    <a href="/">Открыть в браузере</a>
+    <a href="/web/">Для компьютера</a>
+  </div>
+
+</div>
+</body>
+</html>
