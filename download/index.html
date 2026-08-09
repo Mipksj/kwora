@@ -102,6 +102,44 @@ h1 em{font-style:normal;background:var(--grad);-webkit-background-clip:text;back
   border:1px solid var(--line);border-radius:99px;padding:4px 9px;white-space:nowrap;
 }
 
+.row.act{width:100%;text-align:left;background:none;border-left:none;border-right:none;
+  font:inherit;color:inherit;cursor:pointer;transition:background .16s}
+.row.act:hover{background:rgba(255,255,255,.03)}
+.chev{width:17px;height:17px;flex:none;margin-left:2px;fill:none;stroke:#5C6273;
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .22s}
+.row.act[aria-expanded="true"] .chev{transform:rotate(180deg)}
+.row.act[aria-expanded="true"]{border-bottom:none}
+
+.panel{padding:4px 4px 20px;border-bottom:1px solid var(--line);animation:up .3s cubic-bezier(.2,.8,.3,1)}
+.q{font-size:14px;color:var(--dim);margin-bottom:11px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{
+  font:inherit;font-size:14px;font-weight:500;color:var(--dim);cursor:pointer;
+  background:var(--s1);border:1px solid var(--line);border-radius:99px;padding:9px 16px;
+  transition:color .16s,border-color .16s,background .16s;
+}
+.chip:hover{color:var(--tx);border-color:#3A3F52}
+.chip[aria-pressed="true"]{color:var(--tx);border-color:transparent;background:var(--grad)}
+.chip[aria-pressed="true"]{color:#0C0D11}
+
+.steps{margin-top:18px}
+.steps ol{list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:12px}
+.steps li{counter-increment:s;display:flex;gap:12px;font-size:14.5px;line-height:1.5;color:var(--tx)}
+.steps li::before{
+  content:counter(s);flex:none;width:23px;height:23px;border-radius:50%;
+  display:grid;place-items:center;margin-top:1px;
+  font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;
+  background:var(--s2);border:1px solid var(--line);color:var(--dim);
+}
+.steps b{font-weight:600}
+.steps .warn{margin-top:14px;font-size:12.5px;color:#5C6273;line-height:1.55}
+.open{
+  display:inline-flex;align-items:center;gap:8px;margin-top:16px;text-decoration:none;
+  font-size:14.5px;font-weight:600;color:#0C0D11;background:var(--grad);
+  border-radius:99px;padding:11px 19px;
+}
+.open svg{width:15px;height:15px;fill:none;stroke:#0C0D11;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+
 .note{margin-top:22px;color:#5C6273;font-size:12.5px;line-height:1.55}
 .foot{margin-top:30px;padding-top:18px;border-top:1px solid var(--line);
   display:flex;justify-content:space-between;align-items:center;gap:14px;font-size:13px}
@@ -158,13 +196,24 @@ h1 em{font-style:normal;background:var(--grad);-webkit-background-clip:text;back
       <div class="tag">в разработке</div>
     </div>
 
-    <div class="row">
+    <button class="row act" id="appleRow" aria-expanded="false" aria-controls="applePanel">
       <div class="ic"><svg viewBox="0 0 24 24"><path d="M16.4 12.7c0-2.2 1.8-3.3 1.9-3.4-1-1.5-2.6-1.7-3.2-1.7-1.4-.1-2.7.8-3.3.8-.7 0-1.7-.8-2.8-.8-1.5 0-2.8.8-3.6 2.1-1.5 2.6-.4 6.5 1.1 8.6.7 1 1.6 2.2 2.7 2.2 1.1 0 1.5-.7 2.8-.7 1.3 0 1.6.7 2.8.7 1.2 0 1.9-1 2.6-2.1.8-1.2 1.2-2.4 1.2-2.4-.1 0-2.2-.9-2.2-3.3zM14.3 5.9c.6-.7 1-1.7.9-2.7-.9 0-2 .6-2.6 1.3-.6.6-1.1 1.7-.9 2.6 1 .1 2-.5 2.6-1.2z"/></svg></div>
       <div>
         <div class="rt">iOS и macOS</div>
-        <div class="rn">iPhone, iPad, MacBook</div>
+        <div class="rn">Пока ставится из браузера</div>
       </div>
       <div class="tag">в разработке</div>
+      <svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+
+    <div class="panel" id="applePanel" hidden>
+      <div class="q">Какое устройство?</div>
+      <div class="chips">
+        <button class="chip" data-dev="iphone">iPhone</button>
+        <button class="chip" data-dev="ipad">iPad</button>
+        <button class="chip" data-dev="mac">MacBook</button>
+      </div>
+      <div class="steps" id="steps" hidden></div>
     </div>
   </div>
 
@@ -176,5 +225,68 @@ h1 em{font-style:normal;background:var(--grad);-webkit-background-clip:text;back
   </div>
 
 </div>
+
+<script>
+(function(){
+  var row = document.getElementById("appleRow");
+  var panel = document.getElementById("applePanel");
+  var steps = document.getElementById("steps");
+
+  row.onclick = function(){
+    var on = row.getAttribute("aria-expanded") === "true";
+    row.setAttribute("aria-expanded", String(!on));
+    panel.hidden = on;
+  };
+
+  var DEV = {
+    iphone: {
+      url: "/",
+      label: "Открыть kwora.ru",
+      list: [
+        'Открой <b>kwora.ru</b> именно в Safari — в других браузерах на iPhone так не получится.',
+        'Нажми кнопку <b>«Поделиться»</b> внизу экрана — квадрат со стрелкой вверх.',
+        'Пролистай список и выбери <b>«На экран „Домой“»</b>.',
+        'Нажми <b>«Добавить»</b> справа вверху.'
+      ],
+      warn: 'Значок появится на рабочем столе. Запускай только оттуда — уведомления приходят лишь установленному приложению, из вкладки Safari их не будет.'
+    },
+    ipad: {
+      url: "/web/",
+      label: "Открыть версию для iPad",
+      list: [
+        'Открой <b>kwora.ru/web/</b> в Safari.',
+        'Нажми <b>«Поделиться»</b> вверху справа.',
+        'Выбери <b>«На экран „Домой“»</b>, затем <b>«Добавить»</b>.'
+      ],
+      warn: 'На iPad удобнее версия для большого экрана: список чатов слева, переписка справа.'
+    },
+    mac: {
+      url: "/web/",
+      label: "Открыть версию для компьютера",
+      list: [
+        'Открой <b>kwora.ru/web/</b> в Safari.',
+        'В меню сверху выбери <b>«Файл»</b>, затем <b>«Добавить в Dock»</b>.',
+        'Задай название и нажми <b>«Добавить»</b>.'
+      ],
+      warn: 'Пункт «Добавить в Dock» есть в Safari 17 и новее — это macOS Sonoma и выше. На старых версиях просто пользуйся сайтом.'
+    }
+  };
+
+  var chips = panel.querySelectorAll(".chip");
+  chips.forEach(function(c){
+    c.onclick = function(){
+      chips.forEach(function(x){ x.setAttribute("aria-pressed", "false"); });
+      c.setAttribute("aria-pressed", "true");
+      var d = DEV[c.dataset.dev];
+      steps.innerHTML =
+        "<ol><li>" + d.list.join("</li><li>") + "</li></ol>" +
+        '<p class="warn">' + d.warn + "</p>" +
+        '<a class="open" href="' + d.url + '">' + d.label +
+        '<svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg></a>';
+      steps.hidden = false;
+    };
+  });
+})();
+</script>
 </body>
 </html>
