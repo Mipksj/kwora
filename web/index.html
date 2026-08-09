@@ -7,6 +7,9 @@
 <meta name="theme-color" content="#0C0D11" />
 <link rel="manifest" href="/manifest.json" />
 <link rel="apple-touch-icon" href="/icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Kwora" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -82,7 +85,7 @@ html.web .frame{max-width:none;height:100vh;border:none;background:rgba(12,13,17
 html.web #qrAuth .pane,html.web #auth .pane{max-width:420px;margin:0 auto}
 
 /* три колонки: рейка · список · чат */
-@media(min-width:900px){
+@media(min-width:820px){
   html.web #app{display:grid;grid-template-columns:84px 360px minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
   html.web .left{grid-column:2;border-right:1px solid var(--line);border-left:1px solid var(--line)}
   html.web #chat{grid-column:3;position:relative;inset:auto;transform:none;transition:none;z-index:1;background:transparent}
@@ -937,7 +940,7 @@ function langPickScreen(afterPick){
 }
 
 
-const KW_BUILD = "v63";
+const KW_BUILD = "v64";
 
 /* ==================== РЕЖИМ: МОБИЛЬНЫЙ ИЛИ ВЕБ ====================
    web.kwora.ru — версия для компьютера, kwora.ru — для телефона.
@@ -956,8 +959,8 @@ if (WEB) document.documentElement.classList.add("web");
 function devGate(){
   const w = Math.min(innerWidth, outerWidth || innerWidth);
   let bad = false;
-  if (WEB) bad = w < 900;                    // веб на телефоне
-  else bad = !APP_MODE && w >= 1100;         // мобильная в окне ноутбука
+  if (WEB) bad = w < 820;                    // веб на телефоне
+  else bad = !APP_MODE && w >= 1250;         // мобильная в окне ноутбука
   const g = document.getElementById("wrongDev");
   if (!g) return;
   if (bad) {
