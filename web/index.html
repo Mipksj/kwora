@@ -403,7 +403,7 @@ body.light .kbtn:hover{color:#C9CDD8}
 .sheet button{width:100%;text-align:left;padding:14px;border-radius:14px;font-weight:500;display:flex;align-items:center;gap:11px}
 .sheet button:hover{background:var(--s2)}
 
-#modal{position:absolute;inset:0;z-index:50;display:none;place-items:center;padding:22px;background:rgba(0,0,0,.6)}
+#modal{position:fixed;inset:0;z-index:950;display:none;place-items:center;padding:22px;background:rgba(0,0,0,.6)}
 #modal.on{display:grid}
 .dlg{width:100%;max-width:410px;max-height:86%;overflow-y:auto;background:var(--s1);border:1px solid var(--line);border-radius:22px;padding:20px}
 .dlg h3{font-size:17px;margin-bottom:4px}
@@ -1176,7 +1176,7 @@ const QR = (() => {
   return { make, draw, _ecc: ecc, _mul: mul, _EXP: EXP, _fmt: fmtBits };
 })();
 
-const KW_BUILD = "v67";
+const KW_BUILD = "v68";
 
 /* ==================== РЕЖИМ: МОБИЛЬНЫЙ ИЛИ ВЕБ ====================
    web.kwora.ru — версия для компьютера, kwora.ru — для телефона.
