@@ -14,7 +14,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <style>
 :root{
   --bg:#0C0D11; --s1:#14161C; --s2:#1B1E27; --s3:#242833; --line:#282C38;
@@ -942,18 +941,256 @@ function langPickScreen(afterPick){
 }
 
 
-const KW_BUILD = "v65";
+/* ==================== СВОЙ ГЕНЕРАТОР QR ====================
+   Байтовый режим, уровень коррекции M, версии 1–6.
+   Без внешних библиотек: jsdelivr в России часто недоступен. */
+const QR = (() => {
+  const EXP = new Uint8Array(512), LOG = new Uint8Array(256);
+  (function(){ let x = 1;
+    for (let i = 0; i < 255; i++){ EXP[i] = x; LOG[x] = i; x <<= 1; if (x & 0x100) x ^= 0x11d; }
+    for (let i = 255; i < 512; i++) EXP[i] = EXP[i - 255];
+  })();
+  const mul = (a, b) => (!a || !b) ? 0 : EXP[LOG[a] + LOG[b]];
+
+  /* версия: [байт коррекции на блок, число блоков, данных на блок] */
+  const VER = { 1:[10,1,16], 2:[16,1,28], 3:[26,1,44], 4:[18,2,32], 5:[24,2,43], 6:[16,4,27] };
+
+  function gen(n){
+    let g = [1];
+    for (let i = 0; i < n; i++){
+      const r = new Array(g.length + 1).fill(0);
+      for (let j = 0; j < g.length; j++){ r[j] ^= g[j]; r[j+1] ^= mul(g[j], EXP[i]); }
+      g = r;
+    }
+    return g;
+  }
+  function ecc(data, n){
+    const g = gen(n), r = new Array(data.length + n).fill(0);
+    for (let i = 0; i < data.length; i++) r[i] = data[i];
+    for (let i = 0; i < data.length; i++){
+      const c = r[i]; if (!c) continue;
+      for (let j = 0; j < g.length; j++) r[i+j] ^= mul(g[j], c);
+    }
+    return r.slice(data.length);
+  }
+
+  const bitLen = n => { let l = 0; while (n) { l++; n >>>= 1; } return l; };
+  function fmtBits(mask){
+    const d = mask;                       // уровень M = 00, поэтому только маска
+    let e = d << 10;
+    while (bitLen(e) - bitLen(0x537) >= 0) e ^= 0x537 << (bitLen(e) - bitLen(0x537));
+    return ((d << 10) | e) ^ 0x5412;
+  }
+
+  const MASK = [
+    (i,j) => (i + j) % 2 === 0,
+    (i,j) => i % 2 === 0,
+    (i,j) => j % 3 === 0,
+    (i,j) => (i + j) % 3 === 0,
+    (i,j) => ((i / 2 | 0) + (j / 3 | 0)) % 2 === 0,
+    (i,j) => (i * j) % 2 + (i * j) % 3 === 0,
+    (i,j) => ((i * j) % 2 + (i * j) % 3) % 2 === 0,
+    (i,j) => ((i + j) % 2 + (i * j) % 3) % 2 === 0
+  ];
+
+  function utf8(s){
+    try { return Array.from(new TextEncoder().encode(s)); }
+    catch (_) {
+      const o = [], e = encodeURIComponent(s);
+      for (let i = 0; i < e.length; i++){
+        if (e[i] === "%") { o.push(parseInt(e.substr(i+1,2),16)); i += 2; }
+        else o.push(e.charCodeAt(i));
+      }
+      return o;
+    }
+  }
+
+  function build(text){
+    const bytes = utf8(text);
+    let v = 0;
+    for (let k = 1; k <= 6; k++){
+      const [ecLen, nb, dpb] = VER[k];
+      if (4 + 8 + 8 * bytes.length <= nb * dpb * 8) { v = k; break; }
+    }
+    if (!v) throw new Error("слишком длинная строка для QR");
+    const [ecLen, nb, dpb] = VER[v], total = nb * dpb;
+
+    /* поток бит */
+    const bits = [];
+    const push = (val, n) => { for (let i = n - 1; i >= 0; i--) bits.push((val >> i) & 1); };
+    push(4, 4); push(bytes.length, 8);
+    for (const b of bytes) push(b, 8);
+    for (let i = 0; i < 4 && bits.length < total * 8; i++) bits.push(0);
+    while (bits.length % 8) bits.push(0);
+    const dat = [];
+    for (let i = 0; i < bits.length; i += 8){
+      let b = 0; for (let j = 0; j < 8; j++) b = (b << 1) | bits[i+j];
+      dat.push(b);
+    }
+    for (let i = 0; dat.length < total; i++) dat.push(i % 2 ? 0x11 : 0xEC);
+
+    /* блоки и коррекция */
+    const dBlk = [], eBlk = [];
+    for (let i = 0; i < nb; i++){
+      const d = dat.slice(i * dpb, (i+1) * dpb);
+      dBlk.push(d); eBlk.push(ecc(d, ecLen));
+    }
+    const cw = [];
+    for (let i = 0; i < dpb; i++) for (const b of dBlk) cw.push(b[i]);
+    for (let i = 0; i < ecLen; i++) for (const b of eBlk) cw.push(b[i]);
+
+    const cbits = [];
+    for (const b of cw) for (let i = 7; i >= 0; i--) cbits.push((b >> i) & 1);
+
+    /* сетка */
+    const size = 17 + 4 * v;
+    const mod = Array.from({length:size}, () => new Array(size).fill(0));
+    const rsv = Array.from({length:size}, () => new Array(size).fill(0));
+    const put = (r,c,val) => { mod[r][c] = val; rsv[r][c] = 1; };
+
+    const finder = (R,C) => {
+      for (let r = -1; r <= 7; r++) for (let c = -1; c <= 7; c++){
+        const y = R + r, x = C + c;
+        if (y < 0 || y >= size || x < 0 || x >= size) continue;
+        const on = (r >= 0 && r <= 6 && (c === 0 || c === 6)) ||
+                   (c >= 0 && c <= 6 && (r === 0 || r === 6)) ||
+                   (r >= 2 && r <= 4 && c >= 2 && c <= 4);
+        put(y, x, on ? 1 : 0);
+      }
+    };
+    finder(0,0); finder(0,size-7); finder(size-7,0);
+
+    for (let i = 8; i < size - 8; i++){
+      put(6, i, i % 2 === 0 ? 1 : 0);
+      put(i, 6, i % 2 === 0 ? 1 : 0);
+    }
+    if (v >= 2){
+      const c = size - 7;
+      for (let r = -2; r <= 2; r++) for (let k = -2; k <= 2; k++)
+        put(c + r, c + k, (Math.max(Math.abs(r), Math.abs(k)) !== 1) ? 1 : 0);
+    }
+    put(size - 8, 8, 1);
+    for (let i = 0; i < 9; i++){
+      if (!rsv[i][8]) { mod[i][8] = 0; rsv[i][8] = 1; }
+      if (!rsv[8][i]) { mod[8][i] = 0; rsv[8][i] = 1; }
+    }
+    for (let i = 0; i < 8; i++){
+      if (!rsv[8][size-1-i]) { mod[8][size-1-i] = 0; rsv[8][size-1-i] = 1; }
+      if (!rsv[size-1-i][8]) { mod[size-1-i][8] = 0; rsv[size-1-i][8] = 1; }
+    }
+
+    /* укладка данных змейкой */
+    let dir = -1, row = size - 1, idx = 0;
+    for (let col = size - 1; col > 0; col -= 2){
+      if (col === 6) col--;
+      for (;;){
+        for (let k = 0; k < 2; k++){
+          const cc = col - k;
+          if (!rsv[row][cc]) mod[row][cc] = (idx < cbits.length ? cbits[idx++] : 0);
+        }
+        row += dir;
+        if (row < 0 || row >= size){ row -= dir; dir = -dir; break; }
+      }
+    }
+    return { size, mod, rsv, v, ecLen, nb, dpb };
+  }
+
+  function penalty(m, size){
+    let p = 0;
+    for (let r = 0; r < size; r++){
+      let run = 1;
+      for (let c = 1; c < size; c++){
+        if (m[r][c] === m[r][c-1]) run++;
+        else { if (run >= 5) p += 3 + (run - 5); run = 1; }
+      }
+      if (run >= 5) p += 3 + (run - 5);
+    }
+    for (let c = 0; c < size; c++){
+      let run = 1;
+      for (let r = 1; r < size; r++){
+        if (m[r][c] === m[r-1][c]) run++;
+        else { if (run >= 5) p += 3 + (run - 5); run = 1; }
+      }
+      if (run >= 5) p += 3 + (run - 5);
+    }
+    for (let r = 0; r < size-1; r++) for (let c = 0; c < size-1; c++){
+      const s = m[r][c] + m[r][c+1] + m[r+1][c] + m[r+1][c+1];
+      if (s === 0 || s === 4) p += 3;
+    }
+    const pat1 = [1,0,1,1,1,0,1,0,0,0,0], pat2 = [0,0,0,0,1,0,1,1,1,0,1];
+    const hit = (get, n) => { let c = 0;
+      for (let i = 0; i + 11 <= n; i++){
+        let a = true, b = true;
+        for (let j = 0; j < 11; j++){ if (get(i+j) !== pat1[j]) a = false; if (get(i+j) !== pat2[j]) b = false; }
+        if (a || b) c++;
+      }
+      return c;
+    };
+    for (let r = 0; r < size; r++) p += 40 * hit(i => m[r][i], size);
+    for (let c = 0; c < size; c++) p += 40 * hit(i => m[i][c], size);
+    let dark = 0;
+    for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) dark += m[r][c];
+    p += 10 * Math.floor(Math.abs(dark * 100 / (size*size) - 50) / 5);
+    return p;
+  }
+
+  function applyFmt(m, size, mask){
+    const f = fmtBits(mask);
+    for (let i = 0; i < 15; i++){
+      const d = (f >> i) & 1;
+      if (i < 6) m[i][8] = d; else if (i < 8) m[i+1][8] = d; else m[size-15+i][8] = d;
+      if (i < 8) m[8][size-1-i] = d; else if (i < 9) m[8][15-i-1+1] = d; else m[8][15-i-1] = d;
+    }
+    m[size-8][8] = 1;
+  }
+
+  function make(text){
+    const base = build(text);
+    const { size, rsv } = base;
+    let best = null;
+    for (let k = 0; k < 8; k++){
+      const m = base.mod.map(r => r.slice());
+      for (let r = 0; r < size; r++) for (let c = 0; c < size; c++)
+        if (!rsv[r][c] && MASK[k](r,c)) m[r][c] ^= 1;
+      applyFmt(m, size, k);
+      const p = penalty(m, size);
+      if (!best || p < best.p) best = { p, m, k };
+    }
+    return { size, mod: best.m, mask: best.k, ver: base.v, meta: base };
+  }
+
+  function draw(canvas, text, px){
+    const q = make(text);
+    const quiet = 4, n = q.size + quiet * 2;
+    const cell = Math.max(1, Math.floor((px || 230) / n));
+    const side = cell * n;
+    canvas.width = side; canvas.height = side;
+    const g = canvas.getContext("2d");
+    g.fillStyle = "#FFFFFF"; g.fillRect(0, 0, side, side);
+    g.fillStyle = "#0C0D11";
+    for (let r = 0; r < q.size; r++) for (let c = 0; c < q.size; c++)
+      if (q.mod[r][c]) g.fillRect((c + quiet) * cell, (r + quiet) * cell, cell, cell);
+    return q;
+  }
+
+  return { make, draw, _ecc: ecc, _mul: mul, _EXP: EXP, _fmt: fmtBits };
+})();
+
+const KW_BUILD = "v67";
 
 /* ==================== РЕЖИМ: МОБИЛЬНЫЙ ИЛИ ВЕБ ====================
    web.kwora.ru — версия для компьютера, kwora.ru — для телефона.
    Файл один и тот же, различает себя по адресу.                     */
-const WEB = /(^|\/)web(\/|$)/i.test(location.pathname);
-const MOB_URL = location.origin + "/";
-const WEB_URL = location.origin + "/web/";
 const APP_MODE = (() => {
   try { return matchMedia("(display-mode: standalone)").matches || navigator.standalone === true; }
   catch (_) { return false; }
 })();
+const ON_WEB_PATH = /(^|\/)web(\/|$)/i.test(location.pathname);
+/* Установленное приложение живёт по адресу "/", но поставить его можно и на ноутбук.
+   Поэтому широкое окно у установленного приложения — тоже компьютерная вёрстка. */
+const WEB = ON_WEB_PATH || (APP_MODE && innerWidth >= 1250);
+const MOB_URL = location.origin + "/";
+const WEB_URL = location.origin + "/web/";
 
 if (WEB) document.documentElement.classList.add("web");
 /* рейка вкладок должна быть отдельной колонкой сетки, а не хвостом списка чатов */
@@ -969,8 +1206,8 @@ if (WEB) {
 function devGate(){
   const w = Math.min(innerWidth, outerWidth || innerWidth);
   let bad = false;
-  if (WEB) bad = w < 820;                    // веб на телефоне
-  else bad = !APP_MODE && w >= 1250;         // мобильная в окне ноутбука
+  if (WEB) bad = !APP_MODE && w < 820;       // веб-адрес открыли на телефоне
+  else bad = !APP_MODE && w >= 1250;         // мобильный адрес открыли на ноутбуке
   const g = document.getElementById("wrongDev");
   if (!g) return;
   if (bad) {
@@ -1896,11 +2133,8 @@ async function qrScreen(){
     qrLive = r.code;
     $("qrCode").textContent = r.code;
     const url = MOB_URL + "?w=" + r.code;
-    if (window.QRCode && QRCode.toCanvas) {
-      QRCode.toCanvas($("qrC"), url, { width: 230, margin: 1 }, e => { if (e) note.textContent = "QR не нарисовался — введи код вручную"; });
-    } else {
-      note.textContent = "QR не загрузился — введи код вручную";
-    }
+    try { QR.draw($("qrC"), url, 230); }
+    catch (_) { note.textContent = "QR не нарисовался — введи код вручную"; }
     qrWait(r.code);
   } catch (e) { note.textContent = fbErr(e); }
 }
