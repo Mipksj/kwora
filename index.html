@@ -103,7 +103,9 @@ html.web #qrAuth .pane,html.web #auth .pane{max-width:420px;margin:0 auto}
   html.web .dot{top:7px;right:11px}
 
   /* список чатов шире и просторнее */
-  html.web .left .body{padding-bottom:10px}
+  html.web .left{min-width:0;overflow:hidden}
+  html.web .left .body{padding-bottom:10px;overflow-x:hidden}
+  html.web .view{min-width:0}
   html.web .item{padding:11px 14px;border-radius:14px;margin:1px 8px;transition:background .14s}
   html.web .item:hover{background:rgba(255,255,255,.045)}
   html.web .item.on{background:rgba(123,97,255,.14)}
@@ -940,7 +942,7 @@ function langPickScreen(afterPick){
 }
 
 
-const KW_BUILD = "v64";
+const KW_BUILD = "v65";
 
 /* ==================== РЕЖИМ: МОБИЛЬНЫЙ ИЛИ ВЕБ ====================
    web.kwora.ru — версия для компьютера, kwora.ru — для телефона.
@@ -954,6 +956,14 @@ const APP_MODE = (() => {
 })();
 
 if (WEB) document.documentElement.classList.add("web");
+/* рейка вкладок должна быть отдельной колонкой сетки, а не хвостом списка чатов */
+if (WEB) {
+  try {
+    const _app = document.getElementById("app");
+    const _tabs = document.querySelector(".tabs");
+    if (_app && _tabs && _tabs.parentElement !== _app) _app.insertBefore(_tabs, _app.firstChild);
+  } catch (_) {}
+}
 
 /* Экран не подходит — просто говорим, куда идти, без объяснений. */
 function devGate(){
@@ -1844,6 +1854,7 @@ function stopAll(){
   $("app").classList.add("hide");
   $("splash").classList.add("hide");
   $("forgot").classList.add("hide");
+  if (WEB) { qrScreen(); return; }
   $("auth").classList.remove("hide");
   busy1($("go"), false);
   try { $("iId").value = ""; $("note").textContent = ""; } catch (_) {}
