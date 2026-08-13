@@ -49,6 +49,9 @@ input::placeholder,textarea::placeholder{color:var(--dim);opacity:1}
 img{display:block;max-width:100%}
 .mono{font-family:"JetBrains Mono",ui-monospace,monospace}
 .hide{display:none !important}
+/* поля выбора файлов: невидимы, но не display:none —
+   иначе часть сборок Chromium (в том числе на Huawei) не открывает выбор */
+.ffile{position:fixed;left:0;bottom:0;width:1px;height:1px;opacity:0;pointer-events:none;z-index:-1;border:0;padding:0}
 .grow{flex:1;min-width:0}
 .ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
@@ -722,12 +725,12 @@ body.light .bub.them{color:var(--tx)}
   </div>
 </div>
 
-<input type="file" id="pickAva" accept="image/*" class="hide">
-<input type="file" id="pickBnr" accept="image/*" class="hide">
-<input type="file" id="pickVid" accept="video/*" multiple class="hide">
-<input type="file" id="pickImg" accept="image/*" multiple class="hide">
-<input type="file" id="pickGrp" accept="image/*" class="hide">
-<input type="file" id="pickBadge" accept="image/*" class="hide">
+<input type="file" id="pickAva" accept="image/*" class="ffile">
+<input type="file" id="pickBnr" accept="image/*" class="ffile">
+<input type="file" id="pickVid" accept="video/*" multiple class="ffile">
+<input type="file" id="pickImg" accept="image/*" multiple class="ffile">
+<input type="file" id="pickGrp" accept="image/*" class="ffile">
+<input type="file" id="pickBadge" accept="image/*" class="ffile">
 
 <script>
 window.__lastErr = "";
@@ -1176,7 +1179,7 @@ const QR = (() => {
   return { make, draw, _ecc: ecc, _mul: mul, _EXP: EXP, _fmt: fmtBits };
 })();
 
-const KW_BUILD = "v69";
+const KW_BUILD = "v70";
 
 /* ==================== РЕЖИМ: МОБИЛЬНЫЙ ИЛИ ВЕБ ====================
    web.kwora.ru — версия для компьютера, kwora.ru — для телефона.
