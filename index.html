@@ -1176,7 +1176,7 @@ const QR = (() => {
   return { make, draw, _ecc: ecc, _mul: mul, _EXP: EXP, _fmt: fmtBits };
 })();
 
-const KW_BUILD = "v68";
+const KW_BUILD = "v69";
 
 /* ==================== РЕЖИМ: МОБИЛЬНЫЙ ИЛИ ВЕБ ====================
    web.kwora.ru — версия для компьютера, kwora.ru — для телефона.
@@ -2239,6 +2239,37 @@ async function shareInto(chat, peer, bag){
 /* ==================== ВХОД ПО QR: СТОРОНА ТЕЛЕФОНА ==================== */
 let scanStop = null;
 
+const APPLE = (() => {
+  try {
+    return /iPad|iPhone|iPod/.test(navigator.platform)
+      || (navigator.userAgent.includes("Mac") && navigator.maxTouchPoints > 1)
+      || /iPhone|iPad/.test(navigator.userAgent);
+  } catch (_) { return false; }
+})();
+
+/* Safari не умеет BarcodeDetector, и на айфоне это касается всех браузеров сразу.
+   Зато системная камера читает QR сама и открывает нашу ссылку. */
+function appleScanHint(){
+  const d = $("dlg"); d.replaceChildren();
+  d.append(el("h3", null, "Сканируй камерой"));
+  const ol = document.createElement("ol");
+  ol.style.cssText = "margin:6px 0 4px 18px;font-size:14.5px;line-height:1.6;color:var(--tx)";
+  for (const t of ["Открой обычное приложение «Камера».",
+                   "Наведи на QR-код на экране компьютера.",
+                   "Сверху появится плашка со ссылкой — нажми её.",
+                   "Kwora откроется и сама спросит подтверждение."]) {
+    const li = document.createElement("li"); li.textContent = t; ol.append(li);
+  }
+  d.append(ol);
+  d.append(el("p", null, "Встроенный сканер на технике Apple не работает: Safari не поддерживает распознавание кодов, и на iPhone это касается всех браузеров."));
+  const row = el("div", "row");
+  const man = el("button", "ghost", "Ввести код вручную");
+  man.onclick = () => { closeDlg(); codeDialog(); };
+  const ok = el("button", "cta", "Понятно"); ok.onclick = closeDlg;
+  row.append(man, ok); d.append(row);
+  $("modal").classList.add("on");
+}
+
 async function scanOpen(){
   const ov = el("div"); ov.id = "scanOv";
   const v = document.createElement("video");
@@ -2261,7 +2292,9 @@ async function scanOpen(){
   };
 
   if (!("BarcodeDetector" in window)) {
-    scanClose(); toast("Сканер не поддерживается — введи код вручную"); codeDialog(); return;
+    scanClose();
+    if (APPLE) { appleScanHint(); return; }
+    toast("Сканер не поддерживается — введи код вручную"); codeDialog(); return;
   }
   try {
     det = new BarcodeDetector({ formats: ["qr_code"] });
