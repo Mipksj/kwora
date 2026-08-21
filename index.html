@@ -312,6 +312,9 @@ html.web #qrAuth .pane,html.web #auth .pane{max-width:420px;margin:0 auto}
 .emo-row button{font-size:26px;padding:6px 8px;border-radius:12px}
 .emo-row button:active{background:var(--s2)}
 .bub .cap-t{padding:5px 8px 0;white-space:pre-wrap}
+.lnk{color:#7FC4FF;text-decoration:underline;text-underline-offset:2px;word-break:break-word;cursor:pointer}
+.bub.mine .lnk{color:#CFE6FF}
+.lnk:active{opacity:.7}
 .bub .ts{display:block;font-size:10px;opacity:.65;text-align:right;margin-top:3px;font-family:"JetBrains Mono",monospace}
 .bub.pic .ts{padding-right:6px}
 .comp{position:relative}
@@ -1179,7 +1182,7 @@ const QR = (() => {
   return { make, draw, _ecc: ecc, _mul: mul, _EXP: EXP, _fmt: fmtBits };
 })();
 
-const KW_BUILD = "v70";
+const KW_BUILD = "v72";
 
 /* ==================== РЕЖИМ: МОБИЛЬНЫЙ ИЛИ ВЕБ ====================
    web.kwora.ru — версия для компьютера, kwora.ru — для телефона.
@@ -2254,22 +2257,16 @@ const APPLE = (() => {
    Зато системная камера читает QR сама и открывает нашу ссылку. */
 function appleScanHint(){
   const d = $("dlg"); d.replaceChildren();
-  d.append(el("h3", null, "Сканируй камерой"));
-  const ol = document.createElement("ol");
-  ol.style.cssText = "margin:6px 0 4px 18px;font-size:14.5px;line-height:1.6;color:var(--tx)";
-  for (const t of ["Открой обычное приложение «Камера».",
-                   "Наведи на QR-код на экране компьютера.",
-                   "Сверху появится плашка со ссылкой — нажми её.",
-                   "Kwora откроется и сама спросит подтверждение."]) {
-    const li = document.createElement("li"); li.textContent = t; ol.append(li);
-  }
-  d.append(ol);
-  d.append(el("p", null, "Встроенный сканер на технике Apple не работает: Safari не поддерживает распознавание кодов, и на iPhone это касается всех браузеров."));
+  d.append(el("h3", null, "Введи код с экрана"));
+  d.append(el("p", null, "Под QR-кодом на компьютере есть восемь символов. Введи их здесь — это самый надёжный путь на технике Apple."));
+  const note = el("p", null, "Сканировать камерой тоже можно, но ссылка откроется в браузере по умолчанию. Если это не Safari, где ты вошёл, ничего не выйдет — переключить систему на нужный браузер нельзя.");
+  note.style.cssText = "font-size:12.5px;color:var(--dim)";
+  d.append(note);
   const row = el("div", "row");
-  const man = el("button", "ghost", "Ввести код вручную");
-  man.onclick = () => { closeDlg(); codeDialog(); };
-  const ok = el("button", "cta", "Понятно"); ok.onclick = closeDlg;
-  row.append(man, ok); d.append(row);
+  const no = el("button", "ghost", "Отмена"); no.onclick = closeDlg;
+  const ok = el("button", "cta", "Ввести код");
+  ok.onclick = () => { closeDlg(); codeDialog(); };
+  row.append(no, ok); d.append(row);
   $("modal").classList.add("on");
 }
 
@@ -2920,16 +2917,53 @@ function myPerms(){
 }
 
 /* @упоминания: подсветка и клик в профиль */
+const RICH_TLD = "ru|рф|su|com|net|org|io|me|dev|app|site|online|store|tech|info|biz|xyz|tv|cc|ge";
+const RICH_LBL = "[a-zA-Z0-9а-яёА-ЯЁ][-a-zA-Z0-9а-яёА-ЯЁ]*";
+const RICH_RE = new RegExp(
+  "([A-Za-z0-9._%+-]+@[A-Za-z0-9-]+\\.[A-Za-z]{2,}"
+  + "|@[A-Za-z0-9_]{3,20}"
+  + "|(?:https?://|www\\.)[^\\s<>\"']+"
+  + "|(?:" + RICH_LBL + "\\.)+(?:" + RICH_TLD + ")(?:/[^\\s<>\"']*)?"
+  + ")", "gi");
+const RICH_DOM = new RegExp("^(?:" + RICH_LBL + "\\.)+(?:" + RICH_TLD + ")", "i");
+const RICH_TAIL = /[.,;:!?)\]}»"']+$/;
+
+function richLink(node, href, label){
+  const a = document.createElement("a");
+  a.className = "lnk";
+  a.href = href;
+  a.textContent = label;
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
+  /* иначе нажатие уйдёт в пузырь и откроется меню сообщения */
+  a.onclick = ev => ev.stopPropagation();
+  node.append(a);
+}
+
 function renderRich(node, text){
-  const parts = String(text).split(/(@[A-Za-z0-9_]{3,20})/g);
-  for (const part of parts) {
+  for (const part of String(text).split(RICH_RE)) {
+    if (!part) continue;
+
+    if (/^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+\.[A-Za-z]{2,}$/.test(part)) {
+      richLink(node, "mailto:" + part, part); continue;
+    }
     if (/^@[A-Za-z0-9_]{3,20}$/.test(part)) {
       const sp = el("span", "mention", part);
       sp.onclick = ev => { ev.stopPropagation(); openByNick(part.slice(1)); };
-      node.append(sp);
-    } else if (part) node.append(document.createTextNode(part));
+      node.append(sp); continue;
+    }
+    if (/^(https?:\/\/|www\.)/i.test(part) || RICH_DOM.test(part)) {
+      let u = part, tail = "";
+      const m = RICH_TAIL.exec(u);
+      if (m) { tail = m[0]; u = u.slice(0, -tail.length); }
+      if (u) richLink(node, /^https?:\/\//i.test(u) ? u : "https://" + u, u);
+      if (tail) node.append(document.createTextNode(tail));
+      continue;
+    }
+    node.append(document.createTextNode(part));
   }
 }
+
 async function openByNick(nick){
   try {
     const q = await getDocs(query(collection(db, "users"), where("nickLow", "==", nick.toLowerCase()), limit(1)));
@@ -3102,7 +3136,7 @@ function drawMsgs(list){
       dots.innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="#fff"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>';
       dots.onclick = ev => { ev.stopPropagation(); msgMenu(m, mine, mine || (grp && (myPerms().del || active.chat.owner === me.uid))); };
       b.append(dots);
-      if (m.text) b.append(el("div", "cap-t", m.text));
+      if (m.text) { const ct = el("div", "cap-t"); renderRich(ct, m.text); b.append(ct); }
     } else if (m.img) {
       const im = document.createElement("img"); im.src = m.img; im.alt = "";
       im.onclick = ev => { ev.stopPropagation(); window.__lightM = { m, mine, canDel: mine || (grp && (myPerms().del || active.chat.owner === me.uid)) }; $("lightImg").src = m.img; $("light").classList.add("on"); };
@@ -3111,7 +3145,7 @@ function drawMsgs(list){
       dots.innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="#fff"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>';
       dots.onclick = ev => { ev.stopPropagation(); msgMenu(m, mine, mine || (grp && (myPerms().del || active.chat.owner === me.uid))); };
       b.append(dots);
-      if (m.text) b.append(el("div", "cap-t", m.text));
+      if (m.text) { const ct = el("div", "cap-t"); renderRich(ct, m.text); b.append(ct); }
     } else if (m.poll) {
       b.append(el("div", "pq", m.poll.q));
       const votes = m.votes || {};
