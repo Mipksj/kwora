@@ -3,7 +3,45 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Kwora</title>
+<title>Kwora — мессенджер с групповыми видеозвонками и ботами</title>
+<meta name="description" content="Kwora — мессенджер для общения на русском: групповые видеозвонки, голосовые и видеосообщения, боты, реакции и ответы на сообщения. Без рекламы. Приложение для Android и Huawei, версия для компьютера." />
+<meta name="keywords" content="Kwora, Квора, мессенджер, видеозвонки, боты, чат, Android, Huawei" />
+<link rel="canonical" href="https://kwora.ru/" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Kwora" />
+<meta property="og:locale" content="ru_RU" />
+<meta property="og:url" content="https://kwora.ru/" />
+<meta property="og:title" content="Kwora — мессенджер с групповыми видеозвонками и ботами" />
+<meta property="og:description" content="Групповые видеозвонки, голосовые и видеосообщения, боты, реакции. Без рекламы. Android, Huawei и компьютер." />
+<meta property="og:image" content="https://kwora.ru/icon-512.png" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Kwora — мессенджер с групповыми видеозвонками и ботами" />
+<meta name="twitter:description" content="Групповые видеозвонки, голосовые и видеосообщения, боты, реакции. Без рекламы." />
+<meta name="twitter:image" content="https://kwora.ru/icon-512.png" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Kwora",
+  "alternateName": "Квора",
+  "url": "https://kwora.ru/",
+  "applicationCategory": "CommunicationApplication",
+  "operatingSystem": "Android, HarmonyOS, Windows, Web",
+  "inLanguage": "ru",
+  "description": "Мессенджер для общения на русском языке: групповые видеозвонки, голосовые и видеосообщения, боты, реакции и ответы на сообщения. Без рекламы.",
+  "downloadUrl": "https://kwora.ru/download/",
+  "featureList": [
+    "Групповые видеозвонки",
+    "Голосовые сообщения",
+    "Видеосообщения",
+    "Боты",
+    "Реакции и ответы на сообщения",
+    "Версия для компьютера с входом по QR-коду"
+  ],
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "RUB" }
+}
+</script>
+
 <meta name="theme-color" content="#0C0D11" />
 <link rel="manifest" href="/manifest.json" />
 <link rel="apple-touch-icon" href="/icon-192.png" />
@@ -521,6 +559,25 @@ body.light .bub.them{color:var(--tx)}
 </style>
 </head>
 <body>
+<noscript>
+  <div style="max-width:640px;margin:0 auto;padding:32px 22px;font-family:system-ui,sans-serif;color:#EDEFF4;background:#0C0D11;line-height:1.6">
+    <h1 style="font-size:26px;margin:0 0 14px">Kwora — мессенджер</h1>
+    <p>Kwora — мессенджер для общения на русском языке. Работает в браузере, ставится приложением на Android и Huawei, есть версия для компьютера.</p>
+    <h2 style="font-size:18px;margin:22px 0 8px">Что умеет</h2>
+    <ul>
+      <li>Групповые видеозвонки с индикацией говорящего</li>
+      <li>Голосовые и видеосообщения</li>
+      <li>Боты и рассылки от их имени</li>
+      <li>Реакции, ответы на сообщения, опросы</li>
+      <li>Вход на компьютере по QR-коду с телефона</li>
+      <li>Без рекламы</li>
+    </ul>
+    <h2 style="font-size:18px;margin:22px 0 8px">Где взять</h2>
+    <p><a href="/download/" style="color:#3EA8FF">Скачать приложение</a> · <a href="/web/" style="color:#3EA8FF">Версия для компьютера</a></p>
+    <p style="margin-top:22px;color:#8A90A0;font-size:14px">Для работы приложения нужен включённый JavaScript.</p>
+  </div>
+</noscript>
+
 
 <svg width="0" height="0" style="position:absolute"><defs>
   <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
@@ -1182,7 +1239,7 @@ const QR = (() => {
   return { make, draw, _ecc: ecc, _mul: mul, _EXP: EXP, _fmt: fmtBits };
 })();
 
-const KW_BUILD = "v72";
+const KW_BUILD = "v73";
 
 /* ==================== РЕЖИМ: МОБИЛЬНЫЙ ИЛИ ВЕБ ====================
    web.kwora.ru — версия для компьютера, kwora.ru — для телефона.
