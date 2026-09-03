@@ -1243,7 +1243,7 @@ const QR = (() => {
   return { make, draw, _ecc: ecc, _mul: mul, _EXP: EXP, _fmt: fmtBits };
 })();
 
-const KW_BUILD = "v74";
+const KW_BUILD = "v77";
 
 /* ==================== РЕЖИМ: МОБИЛЬНЫЙ ИЛИ ВЕБ ====================
    web.kwora.ru — версия для компьютера, kwora.ru — для телефона.
@@ -5189,6 +5189,69 @@ function askKey(){
   $("modal").classList.add("on");
 }
 
+async function badgeLinkDialog(){
+  const d = $("dlg"); d.replaceChildren();
+  d.append(el("h3", null, "Раздача значков"));
+  
+  const form = el("div");
+  form.append(el("div", "cap", "Количество использований"));
+  const usesBox = el("div", "inp");
+  const usesInput = document.createElement("input");
+  usesInput.type = "number"; usesInput.min = "1"; usesInput.max = "1000"; usesInput.value = "1";
+  usesBox.append(usesInput); form.append(usesBox);
+
+  form.append(el("div", "cap", "Выберите значок"));
+  const badgeBox = el("div", "inp");
+  const badgeSelect = document.createElement("select");
+  badgeSelect.style.cssText = "width:100%;padding:8px;font-size:14px;border:1px solid var(--line);border-radius:8px;background:var(--s1);color:var(--tx)";
+  badgeBox.append(badgeSelect); form.append(badgeBox);
+
+  const err = el("div", "note"); form.append(err);
+
+  /* загружаем значки */
+  try {
+    const badges = await getDocs(collection(db, "badges"));
+    if (badges.empty) { err.textContent = "Нет значков в системе."; return; }
+    for (const b of badges.docs) {
+      const opt = document.createElement("option");
+      opt.value = b.id;
+      opt.textContent = b.data().name || b.id;
+      badgeSelect.append(opt);
+    }
+  } catch (e) { err.textContent = say(e); return; }
+
+  d.append(form);
+
+  const row = el("div", "row");
+  const no = el("button", "ghost", "Отмена"); no.onclick = closeDlg;
+  const ok = el("button", "cta", "Создать ссылку");
+  ok.onclick = async () => {
+    err.textContent = "";
+    const uses = parseInt(usesInput.value);
+    const badgeId = badgeSelect.value;
+    if (!uses || uses < 1) { err.textContent = "Введите количество использований."; return; }
+    if (!badgeId) { err.textContent = "Выберите значок."; return; }
+    ok.disabled = true;
+    try {
+      const result = await httpsCallable(fns, "createBadgeLink")({ badgeId, uses });
+      d.replaceChildren();
+      d.append(el("h3", null, "Ссылка создана"));
+      const urlBox = el("div", "inp");
+      const urlInput = document.createElement("input");
+      urlInput.type = "text"; urlInput.value = result.data.url; urlInput.readOnly = true;
+      urlInput.style.fontFamily = "JetBrains Mono";
+      urlBox.append(urlInput); d.append(urlBox);
+      const copy = el("button", "cta", "Копировать ссылку");
+      copy.onclick = () => { navigator.clipboard.writeText(result.data.url).then(() => toast("Скопировано")); };
+      d.append(copy);
+      const close = el("button", "ghost", "Закрыть"); close.onclick = closeDlg;
+      d.append(close);
+    } catch (e) { err.textContent = say(e); ok.disabled = false; }
+  };
+  row.append(no, ok); d.append(row);
+  $("modal").classList.add("on");
+}
+
 function adminPanel(){
   const wrap = document.createDocumentFragment();
   wrap.append(el("div", "cap", "Админ-панель"));
@@ -5198,6 +5261,7 @@ function adminPanel(){
   mk("2 · Пользователи и группы", adminManage);
   mk("3 · Значки", adminBadges);
   mk("4 · Проверить пуши", pushDiag);
+  mk("5 · Раздача значков", badgeLinkDialog);
   {
     const l = el("div", "line");
     l.append(el("div", "k grow", "Показывать техошибки"));
