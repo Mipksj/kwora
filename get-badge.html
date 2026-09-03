@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Получить значок</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Onest, sans-serif;
+  background: linear-gradient(135deg, #7B61FF, #3EA8FF);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.card {
+  background: #0C0D11;
+  border-radius: 20px;
+  padding: 32px;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  color: #EDEFF4;
+}
+h1 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+.desc { font-size: 14px; color: #8A90A0; margin-bottom: 28px; }
+.form { display: none; }
+.form.show { display: block; }
+.field {
+  margin-bottom: 16px;
+}
+label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #8A90A0;
+  letter-spacing: 0.09em;
+  margin-bottom: 8px;
+}
+input, select {
+  width: 100%;
+  padding: 12px;
+  background: #14161C;
+  border: 1px solid #282C38;
+  border-radius: 12px;
+  color: #EDEFF4;
+  font-size: 14px;
+  font-family: inherit;
+}
+input::placeholder { color: #5F6673; }
+input:focus, select:focus { outline: none; border-color: #7B61FF; }
+.accounts {
+  display: none;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 16px;
+}
+.accounts.show { display: block; }
+.account-item {
+  padding: 12px;
+  background: #14161C;
+  border: 1px solid #282C38;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.account-item:hover { background: #1B1E27; border-color: #7B61FF; }
+.account-nick { font-weight: 600; }
+.account-name { font-size: 12px; color: #8A90A0; }
+button {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #7B61FF, #3EA8FF);
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: transform 0.12s;
+  margin-top: 8px;
+}
+button:active { transform: scale(0.98); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+.err { color: #FF6B6B; font-size: 12px; margin-top: 8px; min-height: 18px; }
+.success {
+  display: none;
+  text-align: center;
+  padding: 32px 0;
+}
+.success.show { display: block; }
+@keyframes checkmark {
+  0% { transform: scale(0) rotate(-45deg); opacity: 0; }
+  50% { transform: scale(1.1) rotate(0); }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+.checkmark {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 20px;
+  animation: checkmark 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+.checkmark svg {
+  width: 100%;
+  height: 100%;
+  stroke: #51CF66;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+.success h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+.success p { font-size: 14px; color: #8A90A0; }
+.loading { text-align: center; padding: 20px; }
+.spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #282C38;
+  border-top-color: #7B61FF;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Получить значок</h1>
+  <p class="desc">Введи почту, привязанную к твоему аккаунту</p>
+
+  <div class="form show" id="form">
+    <div class="field">
+      <label for="email">Твоя почта</label>
+      <input type="email" id="email" placeholder="example@mail.com">
+      <div class="err" id="err"></div>
+    </div>
+    <button onclick="continueClicked()">Продолжить</button>
+  </div>
+
+  <div class="accounts" id="accounts">
+    <label>Выбери аккаунт</label>
+    <div id="accountsList"></div>
+    <button onclick="backToEmail()">← Вернуться</button>
+  </div>
+
+  <div class="success" id="success">
+    <div class="checkmark">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+    </div>
+    <h2>Успешно!</h2>
+    <p>Вы получили свой значок</p>
+  </div>
+
+  <div class="loading" id="loading" style="display:none;">
+    <div class="spinner"></div>
+  </div>
+</div>
+
+<script type="module">
+import * as fb from '/firebase-app.js';
+import { initializeApp } from '/firebase-app.js';
+import { getFirestore, collection, getDocs, query, where, doc, updateDoc } from '/firebase-firestore.js';
+import { httpsCallable, getFunctions } from '/firebase-functions.js';
+
+const app = initializeApp({
+  apiKey: "AIzaSyDjw_qVUW7P1pW0N_0NE_Ck06n6BT3tqRM",
+  authDomain: "kwora-massanger.firebaseapp.com",
+  projectId: "kwora-massanger",
+  storageBucket: "kwora-massanger.appspot.com",
+  messagingSenderId: "881505825265",
+  appId: "1:881505825265:web:4ea6d2ecda9b4e8e0b0589"
+});
+const db = getFirestore(app);
+const fns = getFunctions(app, 'europe-west1');
+
+const path = window.location.pathname;
+const match = /\/get\/([a-f0-9]{16})/.exec(path);
+const code = match ? match[1] : null;
+
+if (!code) {
+  document.querySelector('.err').textContent = 'Неверная ссылка.';
+  document.querySelector('button').disabled = true;
+}
+
+let selectedUid = null;
+
+window.continueClicked = async () => {
+  const email = document.getElementById('email').value.trim();
+  const err = document.getElementById('err');
+  err.textContent = '';
+
+  if (!email) { err.textContent = 'Введите почту.'; return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent = 'Некорректная почта.'; return; }
+
+  document.getElementById('loading').style.display = 'block';
+  try {
+    const result = await httpsCallable(fns, 'claimBadgeByLink')({ code, mail: email });
+    const accounts = result.data.accounts;
+
+    if (accounts && accounts.length > 1) {
+      /* несколько аккаунтов — показываем выбор */
+      document.getElementById('form').classList.remove('show');
+      document.getElementById('accounts').classList.add('show');
+      const list = document.getElementById('accountsList');
+      list.replaceChildren();
+      for (const acc of accounts) {
+        const div = document.createElement('div');
+        div.className = 'account-item';
+        div.innerHTML = `<div class="account-nick">${escapeHtml(acc.nick)}</div><div class="account-name">${escapeHtml(acc.name || '(нет имени)')}</div>`;
+        div.onclick = () => selectAccount(acc.uid);
+        list.append(div);
+      }
+    } else if (accounts && accounts.length === 1) {
+      /* один аккаунт — сразу отправляем */
+      await claimAccount(accounts[0].uid);
+    }
+  } catch (e) {
+    err.textContent = e.message || 'Ошибка. Проверьте почту и попробуйте снова.';
+  }
+  document.getElementById('loading').style.display = 'none';
+};
+
+window.selectAccount = (uid) => {
+  selectedUid = uid;
+  const item = event.currentTarget;
+  item.parentElement.querySelectorAll('.account-item').forEach(x => x.style.background = '#14161C');
+  item.style.background = 'rgba(123, 97, 255, 0.2)';
+  
+  const btn = document.createElement('button');
+  btn.textContent = 'Получить значок';
+  btn.onclick = () => claimAccount(uid);
+  const parent = item.parentElement;
+  const oldBtn = parent.querySelector('button:not([onclick="backToEmail()"])');
+  if (oldBtn) oldBtn.remove();
+  parent.insertBefore(btn, item.nextSibling.nextSibling);
+};
+
+async function claimAccount(uid) {
+  document.getElementById('loading').style.display = 'block';
+  try {
+    await httpsCallable(fns, 'claimBadgeByLink')({ code, uid });
+    showSuccess();
+  } catch (e) {
+    document.getElementById('err').textContent = e.message || 'Ошибка при получении значка.';
+  }
+  document.getElementById('loading').style.display = 'none';
+}
+
+function showSuccess() {
+  document.getElementById('form').classList.remove('show');
+  document.getElementById('accounts').classList.remove('show');
+  document.getElementById('success').classList.add('show');
+}
+
+window.backToEmail = () => {
+  document.getElementById('form').classList.add('show');
+  document.getElementById('accounts').classList.remove('show');
+  selectedUid = null;
+};
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+</script>
+</body>
+</html>
+
