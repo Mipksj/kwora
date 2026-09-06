@@ -1243,7 +1243,7 @@ const QR = (() => {
   return { make, draw, _ecc: ecc, _mul: mul, _EXP: EXP, _fmt: fmtBits };
 })();
 
-const KW_BUILD = "v77";
+const KW_BUILD = "v78";
 
 /* ==================== РЕЖИМ: МОБИЛЬНЫЙ ИЛИ ВЕБ ====================
    web.kwora.ru — версия для компьютера, kwora.ru — для телефона.
@@ -5242,7 +5242,10 @@ async function badgeLinkDialog(){
       urlInput.style.fontFamily = "JetBrains Mono";
       urlBox.append(urlInput); d.append(urlBox);
       const copy = el("button", "cta", "Копировать ссылку");
-      copy.onclick = () => { navigator.clipboard.writeText(result.data.url).then(() => toast("Скопировано")); };
+      copy.onclick = async () => {
+        try { await navigator.clipboard.writeText(result.data.url); toast("Скопировано"); }
+        catch (_) { urlInput.select(); urlInput.setSelectionRange(0, 99999); toast("Скопируй вручную"); }
+      };
       d.append(copy);
       const close = el("button", "ghost", "Закрыть"); close.onclick = closeDlg;
       d.append(close);
