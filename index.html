@@ -1243,7 +1243,7 @@ const QR = (() => {
   return { make, draw, _ecc: ecc, _mul: mul, _EXP: EXP, _fmt: fmtBits };
 })();
 
-const KW_BUILD = "v78";
+const KW_BUILD = "v79";
 
 /* ==================== РЕЖИМ: МОБИЛЬНЫЙ ИЛИ ВЕБ ====================
    web.kwora.ru — версия для компьютера, kwora.ru — для телефона.
@@ -4902,6 +4902,29 @@ function drawMe(){
   const l2 = el("div", "line"); l2.append(el("div", "k", T("fNick"))); const nk = el("div", "grow mono", "@" + me.nick); nk.style.textAlign = "right"; l2.append(nk); c1.append(l2);
   box.append(c1);
 
+  box.append(el("div", "cap", "Баллы"));
+  const cPts = el("div", "card");
+  {
+    const lp = el("div", "line");
+    const pg = el("div", "grow");
+    pg.append(el("div", "k", "На счету"));
+    pg.append(el("div", "v", ptsWord(me.points || 0)));
+    lp.append(pg);
+    const eb = el("button", "pill", "Ввести код");
+    eb.onclick = () => { try { window.open("https://kwora.ru/bonus/", "_blank"); } catch (_) { location.href = "https://kwora.ru/bonus/"; } };
+    lp.append(eb); cPts.append(lp);
+
+    const ls = el("div", "line");
+    const sg = el("div", "grow");
+    sg.append(el("div", "k", "Магазин"));
+    sg.append(el("div", "v", "Потратить баллы на значки"));
+    ls.append(sg);
+    const sb = el("button", "pill", "Открыть");
+    sb.onclick = shopDialog;
+    ls.append(sb); cPts.append(ls);
+  }
+  box.append(cPts);
+
   box.append(el("div", "cap", "Аккаунт"));
   const c2 = el("div", "card");
   const l3 = el("div", "line"); const mm = el("div", "grow"); mm.append(el("div", "k", T("fMail"))); mm.append(el("div", "v ell", me.mail || "")); l3.append(mm);
@@ -5189,6 +5212,215 @@ function askKey(){
   $("modal").classList.add("on");
 }
 
+function ptsWord(n){
+  n = Math.max(0, n | 0);
+  const d = n % 10, h = n % 100;
+  const w = (d === 1 && h !== 11) ? "балл" : (d >= 2 && d <= 4 && (h < 12 || h > 14)) ? "балла" : "баллов";
+  return n + " " + w;
+}
+
+/* ── магазин (для всех) ── */
+async function shopDialog(){
+  const d = $("dlg"); d.replaceChildren();
+  d.append(el("h3", null, "Магазин"));
+  const bal = el("p", null, "На счету: " + ptsWord(me.points || 0));
+  d.append(bal);
+  const list = el("div"); d.append(list);
+  const err = el("div", "note"); d.append(err);
+  const cl = el("button", "ghost", "Закрыть"); cl.onclick = closeDlg; d.append(cl);
+  $("modal").classList.add("on");
+
+  let bmap = {};
+  try {
+    const bs = await getDocs(collection(db, "badges"));
+    for (const x of bs.docs) bmap[x.id] = x.data();
+    const its = await getDocs(collection(db, "shopItems"));
+    list.replaceChildren();
+    if (its.empty) { list.append(el("p", null, "Пока пусто. Загляни позже.")); return; }
+    for (const it of its.docs) {
+      const v = it.data();
+      const bd = bmap[v.badge] || {};
+      const row = el("div", "chk");
+      if (bd.img) {
+        const im = document.createElement("img");
+        im.src = bd.img; im.alt = "";
+        im.style.cssText = "width:26px;height:26px;border-radius:6px;flex:none";
+        row.append(im);
+      }
+      const m = el("div", "grow");
+      m.append(el("div", "t1 ell", bd.name || v.badge));
+      const soldOut = v.left !== null && v.left !== undefined && v.left <= 0;
+      m.append(el("div", "t2 ell", ptsWord(v.price) + (v.left == null ? "" : "  ·  осталось " + Math.max(0, v.left))));
+      row.append(m);
+      const mine = (me.badges || []).includes(v.badge);
+      const buy = el("button", "pill" + (mine || soldOut ? "" : " on"),
+        mine ? "Есть" : (soldOut ? "Нет" : "Купить"));
+      buy.disabled = mine || soldOut;
+      buy.onclick = async () => {
+        err.textContent = ""; buy.disabled = true;
+        try {
+          const r = await httpsCallable(fns, "shopBuy")({ item: it.id });
+          me.points = r.data.points;
+          bal.textContent = "На счету: " + ptsWord(me.points || 0);
+          buy.textContent = "Есть"; buy.classList.remove("on");
+          toast("Куплено!");
+        } catch (e) { err.textContent = say(e); buy.disabled = false; }
+      };
+      row.append(buy);
+      list.append(row);
+    }
+  } catch (e) { err.textContent = say(e); }
+}
+
+/* ── админка: пачки бонусных кодов ── */
+async function bonusCodesDialog(){
+  const d = $("dlg"); d.replaceChildren();
+  d.append(el("h3", null, "Бонусные коды"));
+
+  d.append(el("div", "cap", "Название пачки"));
+  const nb = el("div", "inp");
+  const ni = document.createElement("input");
+  ni.placeholder = "напр. запуск"; ni.maxLength = 40; nb.append(ni); d.append(nb);
+
+  d.append(el("div", "cap", "Сколько кодов"));
+  const cb = el("div", "inp");
+  const ci = document.createElement("input");
+  ci.type = "number"; ci.min = "1"; ci.max = "50"; ci.value = "1"; cb.append(ci); d.append(cb);
+
+  d.append(el("div", "cap", "Баллы на каждом коде"));
+  const vals = el("div"); d.append(vals);
+  const syncVals = () => {
+    const n = Math.min(50, Math.max(1, parseInt(ci.value) || 1));
+    while (vals.children.length > n) vals.lastChild.remove();
+    while (vals.children.length < n) {
+      const w = el("div", "inp");
+      const i = document.createElement("input");
+      i.type = "number"; i.min = "1"; i.max = "100000"; i.value = "10";
+      w.append(i); vals.append(w);
+    }
+  };
+  ci.oninput = syncVals; syncVals();
+
+  const err = el("div", "note"); d.append(err);
+  const row = el("div", "row");
+  const no = el("button", "ghost", "Отмена"); no.onclick = closeDlg;
+  const ok = el("button", "cta", "Создать");
+  ok.onclick = async () => {
+    err.textContent = "";
+    const batch = ni.value.trim();
+    if (!batch) { err.textContent = "Дай пачке название."; return; }
+    const values = [...vals.querySelectorAll("input")].map(x => parseInt(x.value) || 0);
+    if (values.some(v => v < 1)) { err.textContent = "Баллы должны быть от 1."; return; }
+    ok.disabled = true;
+    try {
+      const r = await httpsCallable(fns, "createBonusCodes")({ batch, values });
+      d.replaceChildren();
+      d.append(el("h3", null, "Коды готовы"));
+      const lines = r.data.codes.map(c => c.code + " — " + ptsWord(c.points));
+      const boxc = el("div", "inp");
+      const ta2 = document.createElement("textarea");
+      ta2.rows = Math.min(10, lines.length + 1); ta2.readOnly = true;
+      ta2.style.cssText = "resize:none;font-family:'JetBrains Mono',monospace;font-size:13px";
+      ta2.value = lines.join("\n");
+      boxc.append(ta2); d.append(boxc);
+      const cp = el("button", "cta", "Копировать всё");
+      cp.onclick = async () => {
+        try { await navigator.clipboard.writeText(ta2.value); toast("Скопировано"); }
+        catch (_) { ta2.select(); toast("Скопируй вручную"); }
+      };
+      d.append(cp);
+      const cls = el("button", "ghost", "Закрыть"); cls.onclick = closeDlg; d.append(cls);
+    } catch (e) { err.textContent = say(e); ok.disabled = false; }
+  };
+  row.append(no, ok); d.append(row);
+  $("modal").classList.add("on");
+}
+
+/* ── админка: настройки магазина ── */
+async function shopAdminDialog(){
+  const d = $("dlg"); d.replaceChildren();
+  d.append(el("h3", null, "Магазин — товары"));
+  const cur = el("div"); d.append(cur);
+
+  d.append(el("div", "cap", "Добавить значок"));
+  const sb2 = el("div", "inp");
+  const sel = document.createElement("select");
+  sel.style.cssText = "width:100%;padding:8px;font-size:14px;border:1px solid var(--line);border-radius:8px;background:var(--s1);color:var(--tx)";
+  sb2.append(sel); d.append(sb2);
+
+  d.append(el("div", "cap", "Цена в баллах"));
+  const pb = el("div", "inp");
+  const pi = document.createElement("input");
+  pi.type = "number"; pi.min = "1"; pi.value = "100"; pb.append(pi); d.append(pb);
+
+  d.append(el("div", "cap", "Сколько штук (пусто — без ограничений)"));
+  const qb = el("div", "inp");
+  const qi = document.createElement("input");
+  qi.type = "number"; qi.min = "1"; qi.placeholder = "∞"; qb.append(qi); d.append(qb);
+
+  const err = el("div", "note"); d.append(err);
+  const row = el("div", "row");
+  const no = el("button", "ghost", "Закрыть"); no.onclick = closeDlg;
+  const ok = el("button", "cta", "Выложить");
+  row.append(no, ok); d.append(row);
+  $("modal").classList.add("on");
+
+  let bmap = {};
+  const redraw = async () => {
+    cur.replaceChildren();
+    try {
+      const its = await getDocs(collection(db, "shopItems"));
+      if (its.empty) { cur.append(el("p", null, "Товаров пока нет.")); return; }
+      for (const it of its.docs) {
+        const v = it.data();
+        const bd = bmap[v.badge] || {};
+        const r2 = el("div", "chk");
+        const m = el("div", "grow");
+        m.append(el("div", "t1 ell", bd.name || v.badge));
+        m.append(el("div", "t2 ell", ptsWord(v.price) + (v.left == null ? "  ·  ∞" : "  ·  осталось " + v.left)));
+        r2.append(m);
+        const dl = el("button", "pill red", "\u2715");
+        dl.onclick = async () => {
+          try { await deleteDoc(doc(db, "shopItems", it.id)); redraw(); }
+          catch (e) { toast(say(e)); }
+        };
+        r2.append(dl);
+        cur.append(r2);
+      }
+    } catch (e) { cur.append(el("p", null, say(e))); }
+  };
+
+  try {
+    const bs = await getDocs(collection(db, "badges"));
+    for (const x of bs.docs) {
+      bmap[x.id] = x.data();
+      const o = document.createElement("option");
+      o.value = x.id; o.textContent = x.data().name || x.id;
+      sel.append(o);
+    }
+    if (!sel.children.length) { err.textContent = "Сначала создай значки."; ok.disabled = true; }
+  } catch (e) { err.textContent = say(e); }
+  redraw();
+
+  ok.onclick = async () => {
+    err.textContent = "";
+    const price = parseInt(pi.value) || 0;
+    if (!sel.value) { err.textContent = "Выбери значок."; return; }
+    if (price < 1) { err.textContent = "Цена от 1 балла."; return; }
+    const left = qi.value.trim() === "" ? null : (parseInt(qi.value) || 0);
+    if (left !== null && left < 1) { err.textContent = "Количество от 1, либо пусто."; return; }
+    ok.disabled = true;
+    try {
+      await addDoc(collection(db, "shopItems"), {
+        type: "badge", badge: sel.value, price, left, at: serverTimestamp()
+      });
+      toast("Выложено");
+      ok.disabled = false;
+      redraw();
+    } catch (e) { err.textContent = say(e); ok.disabled = false; }
+  };
+}
+
 async function badgeLinkDialog(){
   const d = $("dlg"); d.replaceChildren();
   d.append(el("h3", null, "Раздача значков"));
@@ -5265,6 +5497,8 @@ function adminPanel(){
   mk("3 · Значки", adminBadges);
   mk("4 · Проверить пуши", pushDiag);
   mk("5 · Раздача значков", badgeLinkDialog);
+  mk("6 · Бонусные коды", bonusCodesDialog);
+  mk("7 · Магазин", shopAdminDialog);
   {
     const l = el("div", "line");
     l.append(el("div", "k grow", "Показывать техошибки"));
