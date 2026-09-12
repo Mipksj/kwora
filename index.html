@@ -561,6 +561,85 @@ body.light{
 body.light .tabs{background:rgba(255,255,255,.9);border-color:rgba(0,0,0,.08)}
 body.light .bub.them{color:var(--tx)}
 </style>
+<style id="kwGlass">
+/* ═══ K:GLASS — стекло, нажатия, воздух. Слой поверх основного стиля ═══ */
+
+/* дыхание фона: видно на входе и в профиле, где нет глухих панелей */
+body::before, body::after{
+  content:"";position:fixed;border-radius:50%;filter:blur(95px);
+  pointer-events:none;z-index:0;opacity:.2;
+}
+body::before{width:420px;height:420px;left:-150px;top:-130px;background:#7B61FF;
+  animation:kgD1 12s ease-in-out infinite alternate}
+body::after{width:460px;height:460px;right:-170px;bottom:-150px;background:#3EA8FF;
+  animation:kgD2 14s ease-in-out infinite alternate}
+@keyframes kgD1{to{transform:translate(44px,32px) scale(1.1)}}
+@keyframes kgD2{to{transform:translate(-40px,-28px) scale(.95)}}
+
+/* ── жидкое стекло ── */
+.dlg{
+  background:rgba(20,23,31,.86)!important;
+  backdrop-filter:blur(26px) saturate(1.5);-webkit-backdrop-filter:blur(26px) saturate(1.5);
+  border-color:rgba(255,255,255,.09)!important;
+  padding:22px;
+}
+#modal{backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px)}
+.sheet{
+  background:rgba(20,23,31,.87);
+  backdrop-filter:blur(26px) saturate(1.5);-webkit-backdrop-filter:blur(26px) saturate(1.5);
+  border-color:rgba(255,255,255,.09);
+}
+.mpop{
+  background:rgba(22,25,33,.9);
+  backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4);
+  border-color:rgba(255,255,255,.09);
+}
+.tabs{
+  background:rgba(19,22,30,.66);
+  backdrop-filter:blur(24px) saturate(1.7);-webkit-backdrop-filter:blur(24px) saturate(1.7);
+}
+
+/* ── воздух: чуть больше отступов, крупнее скругления ── */
+.item{padding:11px 16px;border-radius:14px;margin:1px 6px;width:calc(100% - 12px)}
+.line{padding:14px 16px}
+.chk{padding:11px 2px}
+.card{margin:0 15px 14px;border-radius:22px}
+
+/* ── нажатия: всё отвечает пальцу ── */
+.item{transition:background .16s,transform .12s}
+.item:active{background:var(--s2);transform:scale(.98)}
+.pill{transition:transform .12s,background .16s,opacity .16s}
+.pill:active{transform:scale(.92)}
+.chk{transition:transform .12s}
+.chk:active{transform:scale(.985)}
+.cta{transition:transform .13s,box-shadow .2s,opacity .15s}
+.cta:active{transform:scale(.96)}
+.ghost{transition:transform .13s,background .18s}
+.ghost:active{transform:scale(.97);background:var(--s3)}
+.plain:active{opacity:.6}
+.line{transition:background .16s}
+.line:active{background:rgba(255,255,255,.04)}
+.bub{transition:transform .12s}
+.bub:active{transform:scale(.988)}
+.mpop button{transition:background .14s,transform .1s}
+.mpop button:active{transform:scale(.98)}
+.acc:active{transform:scale(.98)}
+
+/* вкладки: живой отклик и подпрыгивание при выборе */
+.tabs button{transition:transform .16s,color .18s,background .2s;border-radius:999px}
+.tabs button:active{transform:scale(.86)}
+.tabs button.on{animation:kgTab .28s cubic-bezier(.34,1.56,.64,1)}
+@keyframes kgTab{0%{transform:scale(.88)}60%{transform:scale(1.07)}100%{transform:scale(1)}}
+
+/* появление диалога и шторки — мягче */
+#modal.on .dlg{animation:kgUp .3s cubic-bezier(.2,.85,.3,1)}
+@keyframes kgUp{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
+
+@media(prefers-reduced-motion:reduce){
+  body::before,body::after,.tabs button.on,#modal.on .dlg{animation:none}
+}
+</style>
+
 </head>
 <body>
 <noscript>
@@ -1243,7 +1322,7 @@ const QR = (() => {
   return { make, draw, _ecc: ecc, _mul: mul, _EXP: EXP, _fmt: fmtBits };
 })();
 
-const KW_BUILD = "v81";
+const KW_BUILD = "v82";
 
 /* ==================== РЕЖИМ: МОБИЛЬНЫЙ ИЛИ ВЕБ ====================
    web.kwora.ru — версия для компьютера, kwora.ru — для телефона.
