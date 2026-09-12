@@ -1243,7 +1243,7 @@ const QR = (() => {
   return { make, draw, _ecc: ecc, _mul: mul, _EXP: EXP, _fmt: fmtBits };
 })();
 
-const KW_BUILD = "v79";
+const KW_BUILD = "v81";
 
 /* ==================== РЕЖИМ: МОБИЛЬНЫЙ ИЛИ ВЕБ ====================
    web.kwora.ru — версия для компьютера, kwora.ru — для телефона.
@@ -2983,7 +2983,7 @@ const RICH_TLD = "ru|рф|su|com|net|org|io|me|dev|app|site|online|store|tech|in
 const RICH_LBL = "[a-zA-Z0-9а-яёА-ЯЁ][-a-zA-Z0-9а-яёА-ЯЁ]*";
 const RICH_RE = new RegExp(
   "([A-Za-z0-9._%+-]+@[A-Za-z0-9-]+\\.[A-Za-z]{2,}"
-  + "|@[A-Za-z0-9_]{3,20}"
+  + "|@[A-Za-z0-9_]{1,20}"
   + "|(?:https?://|www\\.)[^\\s<>\"']+"
   + "|(?:" + RICH_LBL + "\\.)+(?:" + RICH_TLD + ")(?:/[^\\s<>\"']*)?"
   + ")", "gi");
@@ -3009,7 +3009,7 @@ function renderRich(node, text){
     if (/^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+\.[A-Za-z]{2,}$/.test(part)) {
       richLink(node, "mailto:" + part, part); continue;
     }
-    if (/^@[A-Za-z0-9_]{3,20}$/.test(part)) {
+    if (/^@[A-Za-z0-9_]{1,20}$/.test(part)) {
       const sp = el("span", "mention", part);
       sp.onclick = ev => { ev.stopPropagation(); openByNick(part.slice(1)); };
       node.append(sp); continue;
@@ -4911,13 +4911,13 @@ function drawMe(){
     pg.append(el("div", "v", ptsWord(me.points || 0)));
     lp.append(pg);
     const eb = el("button", "pill", "Ввести код");
-    eb.onclick = () => { try { window.open("https://kwora.ru/bonus/", "_blank"); } catch (_) { location.href = "https://kwora.ru/bonus/"; } };
+    eb.onclick = enterCodeDialog;
     lp.append(eb); cPts.append(lp);
 
     const ls = el("div", "line");
     const sg = el("div", "grow");
     sg.append(el("div", "k", "Магазин"));
-    sg.append(el("div", "v", "Потратить баллы на значки"));
+    sg.append(el("div", "v", "Значки и никнеймы"));
     ls.append(sg);
     const sb = el("button", "pill", "Открыть");
     sb.onclick = shopDialog;
@@ -5219,15 +5219,41 @@ function ptsWord(n){
   return n + " " + w;
 }
 
-/* ── магазин (для всех) ── */
-async function shopDialog(){
+/* ── магазин (для всех): выбор раздела ── */
+function shopDialog(){
   const d = $("dlg"); d.replaceChildren();
   d.append(el("h3", null, "Магазин"));
+  d.append(el("p", null, "На счету: " + ptsWord(me.points || 0)));
+
+  const mk2 = (t1, t2, fn) => {
+    const row = el("div", "chk");
+    row.style.cursor = "pointer";
+    const m = el("div", "grow");
+    m.append(el("div", "t1", t1));
+    m.append(el("div", "t2", t2));
+    row.append(m);
+    const go = el("div", null, "\u203a");
+    go.style.cssText = "font-size:22px;color:var(--dim);padding:0 4px";
+    row.append(go);
+    row.onclick = fn;
+    d.append(row);
+  };
+  mk2("Значки", "Украшение для профиля", shopBadges);
+  mk2("Никнейм", "Смени @ник — чем короче, тем дороже", shopNickDialog);
+
+  const cl = el("button", "ghost", "Закрыть"); cl.onclick = closeDlg; d.append(cl);
+  $("modal").classList.add("on");
+}
+
+/* ── магазин: значки ── */
+async function shopBadges(){
+  const d = $("dlg"); d.replaceChildren();
+  d.append(el("h3", null, "Значки"));
   const bal = el("p", null, "На счету: " + ptsWord(me.points || 0));
   d.append(bal);
   const list = el("div"); d.append(list);
   const err = el("div", "note"); d.append(err);
-  const cl = el("button", "ghost", "Закрыть"); cl.onclick = closeDlg; d.append(cl);
+  const back = el("button", "ghost", "\u2190 Назад"); back.onclick = shopDialog; d.append(back);
   $("modal").classList.add("on");
 
   let bmap = {};
@@ -5250,7 +5276,7 @@ async function shopDialog(){
       const m = el("div", "grow");
       m.append(el("div", "t1 ell", bd.name || v.badge));
       const soldOut = v.left !== null && v.left !== undefined && v.left <= 0;
-      m.append(el("div", "t2 ell", ptsWord(v.price) + (v.left == null ? "" : "  ·  осталось " + Math.max(0, v.left))));
+      m.append(el("div", "t2 ell", ptsWord(v.price) + (v.left == null ? "" : "  \u00b7  осталось " + Math.max(0, v.left))));
       row.append(m);
       const mine = (me.badges || []).includes(v.badge);
       const buy = el("button", "pill" + (mine || soldOut ? "" : " on"),
@@ -5270,6 +5296,110 @@ async function shopDialog(){
       list.append(row);
     }
   } catch (e) { err.textContent = say(e); }
+}
+
+/* ── магазин: покупка никнейма ── */
+function nickPrice(n){ return n === 1 ? 150000 : n === 2 ? 50000 : n === 3 ? 10000 : 5000; }
+
+function shopNickDialog(){
+  const d = $("dlg"); d.replaceChildren();
+  d.append(el("h3", null, "Купить никнейм"));
+  d.append(el("p", null, "Сейчас ты @" + me.nick + ". На счету: " + ptsWord(me.points || 0) + "."));
+
+  const w = el("div", "inp");
+  const pre = el("span", "pre", "@"); w.append(pre);
+  const i = document.createElement("input");
+  i.placeholder = "новый_ник"; i.maxLength = 20;
+  i.autocapitalize = "off"; i.autocomplete = "off"; i.spellcheck = false;
+  w.append(i); d.append(w);
+
+  const priceLine = el("p", null, "");
+  priceLine.style.margin = "8px 0 0";
+  d.append(priceLine);
+
+  const err = el("div", "note"); d.append(err);
+  const row = el("div", "row");
+  const back = el("button", "ghost", "\u2190 Назад"); back.onclick = shopDialog;
+  const ok = el("button", "cta", "Купить");
+  ok.disabled = true;
+
+  const sync = () => {
+    const low = i.value.trim().toLowerCase();
+    err.textContent = "";
+    if (!low) { priceLine.textContent = "1 символ — 150 000 · 2 — 50 000 · 3 — 10 000 · длиннее — 5 000"; ok.disabled = true; return; }
+    if (!/^[a-z0-9_]{1,20}$/.test(low)) { priceLine.textContent = ""; err.textContent = "Латиница, цифры и _"; ok.disabled = true; return; }
+    if (low === (me.nick || "").toLowerCase()) { priceLine.textContent = ""; err.textContent = "Это и так твой ник."; ok.disabled = true; return; }
+    const pr = nickPrice(low.length);
+    priceLine.textContent = "Цена: " + ptsWord(pr);
+    ok.disabled = (me.points || 0) < pr;
+    if (ok.disabled) err.textContent = "Не хватает баллов.";
+  };
+  i.oninput = sync; sync();
+
+  ok.onclick = () => {
+    const nick = i.value.trim().replace(/^@/, "");
+    const pr = nickPrice(nick.length);
+    /* предупреждение перед покупкой */
+    d.replaceChildren();
+    d.append(el("h3", null, "Точно меняем?"));
+    d.append(el("p", null, "Ты покупаешь @" + nick + " за " + ptsWord(pr) + "."));
+    const warn = el("p", null, "Твой нынешний ник @" + me.nick + " пропадёт и станет свободным — его сможет занять кто угодно.");
+    warn.style.color = "var(--bad)";
+    d.append(warn);
+    const err2 = el("div", "note"); d.append(err2);
+    const row2 = el("div", "row");
+    const no2 = el("button", "ghost", "Отмена"); no2.onclick = shopNickDialog;
+    const ok2 = el("button", "cta", "Купить");
+    ok2.onclick = async () => {
+      ok2.disabled = true; err2.textContent = "";
+      try {
+        const r = await httpsCallable(fns, "shopBuyNick")({ nick });
+        me.points = (me.points || 0) - (r.data.price || 0);
+        me.nick = r.data.nick;
+        me.nickLow = r.data.nick.toLowerCase();
+        closeDlg();
+        toast("Теперь ты @" + r.data.nick);
+        drawMe();
+      } catch (e) { err2.textContent = say(e); ok2.disabled = false; }
+    };
+    row2.append(no2, ok2); d.append(row2);
+  };
+
+  row.append(back, ok); d.append(row);
+  $("modal").classList.add("on");
+  setTimeout(() => i.focus(), 60);
+}
+
+/* ── ввод бонусного кода внутри приложения: без почты, ты уже вошёл ── */
+function enterCodeDialog(){
+  const d = $("dlg"); d.replaceChildren();
+  d.append(el("h3", null, "Ввести код"));
+  d.append(el("p", null, "Восемь символов с бонусной карточки."));
+  const w = el("div", "inp");
+  const i = document.createElement("input");
+  i.placeholder = "XXXX-XXXX"; i.maxLength = 9;
+  i.autocapitalize = "characters"; i.autocomplete = "off";
+  i.style.cssText = "text-transform:uppercase;letter-spacing:.12em;font-family:'JetBrains Mono',monospace";
+  w.append(i); d.append(w);
+  const err = el("div", "note"); d.append(err);
+  const row = el("div", "row");
+  const no = el("button", "ghost", "Отмена"); no.onclick = closeDlg;
+  const ok = el("button", "cta", "Активировать");
+  ok.onclick = async () => {
+    err.textContent = "";
+    if (i.value.replace(/[^A-Za-z0-9]/g, "").length !== 8) { err.textContent = "В коде 8 символов."; return; }
+    ok.disabled = true;
+    try {
+      const r = await httpsCallable(fns, "claimBonusCode")({ code: i.value.trim() });
+      me.points = (me.points || 0) + (r.data.points || 0);
+      closeDlg();
+      toast("+" + ptsWord(r.data.points || 0));
+      drawMe();
+    } catch (e) { err.textContent = say(e); ok.disabled = false; }
+  };
+  row.append(no, ok); d.append(row);
+  $("modal").classList.add("on");
+  setTimeout(() => i.focus(), 60);
 }
 
 /* ── админка: пачки бонусных кодов ── */
